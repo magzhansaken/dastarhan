@@ -22,10 +22,12 @@ export class VerticalsController {
 
     const weighted = parseWeightBarcode(code);
     if (weighted) {
+      // findFirst сам вернёт null, если товар не найден —
+      // .catch здесь ломал вывод типов до never
       const product = await this.prisma.product.findFirst({
         where: { barcodes: { some: { value: String((weighted as any).plu) } } },
         select: { id: true, name: true, basePrice: true, unit: true },
-      }).catch(() => null);
+      });
 
       return {
         kind: 'WEIGHTED',
