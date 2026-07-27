@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://dastarhan.duckdns.org:8443/sitemap.xml
