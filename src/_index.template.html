@@ -8,6 +8,20 @@
 <link rel="canonical" href="https://dastarhan.kz{{CANON}}">
 <link rel="alternate" hreflang="ru" href="https://dastarhan.kz/">
 <link rel="alternate" hreflang="kk" href="https://dastarhan.kz/kk/">
+<link rel="icon" type="image/svg+xml" href="{{ROOT}}favicon.svg">
+<link rel="apple-touch-icon" href="{{ROOT}}favicon.svg">
+<meta name="theme-color" content="#e8833a">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Dastarhan">
+<meta property="og:locale" content="{{OGLOCALE}}">
+<meta property="og:title" content="{{OGTITLE}}">
+<meta property="og:description" content="{{OGDESC}}">
+<meta property="og:image" content="https://dastarhan.duckdns.org:8443/og.svg">
+<meta property="og:url" content="https://dastarhan.duckdns.org:8443{{CANON}}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{OGTITLE}}">
+<meta name="twitter:description" content="{{OGDESC}}">
+<meta name="twitter:image" content="https://dastarhan.duckdns.org:8443/og.svg">
 <link rel="stylesheet" href="{{ROOT}}css/site.css">
 </head>
 <body>
@@ -42,7 +56,7 @@
       <h1>⟦Система для кафе,<br>сделанная здесь,<br>а не переведённая|Кафе үшін жүйе:<br>осында жасалған,<br>аударылған емес⟧</h1>
       <p class="lead">⟦Webkassa и re:Kassa из коробки, оплата Kaspi, налог 3% в отчёте о прибыли и полный казахский интерфейс. Касса работает, даже когда интернет пропал.|Webkassa мен re:Kassa бірден қосылады, Kaspi арқылы төлем, пайда есебінде 3% салық және толық қазақ тілді интерфейс. Интернет жоғалса да, касса жұмысын жалғастырады.⟧</p>
       <div class="hero-cta">
-        <a class="btn btn-primary btn-lg" href="#try">⟦Попробовать 14 дней|14 күн байқап көру⟧</a>
+        <a class="btn btn-primary btn-lg" href="#lead">⟦Попробовать 14 дней|14 күн байқап көру⟧</a>
         <a class="btn btn-lg" href="#demo">⟦Живое демо|Тірі демо⟧</a>
       </div>
       <p class="hero-note">⟦Без карты. Первый чек — через 15 минут после регистрации.|Картасыз. Алғашқы чек — тіркелгеннен кейін 15 минутта.⟧</p>
@@ -261,6 +275,60 @@
     </div>
   </div>
 </section>
+
+
+<!-- ФОРМА ЗАЯВКИ -->
+<section class="sec" id="lead">
+  <div class="wrap">
+    <div class="sec-head" style="text-align:center;margin:0 auto 28px">
+      <h2>⟦Оставьте заявку — перезвоним за 15 минут|Өтінім қалдырыңыз — 15 минутта қоңырау шаламыз⟧</h2>
+      <p class="lead">⟦Покажем систему на вашем меню, посчитаем цену под ваши точки. Без навязывания.|Жүйені мәзіріңізде көрсетеміз, нүктелеріңізге баға есептейміз.⟧</p>
+    </div>
+    <div class="calc-box" style="max-width:520px;margin:0 auto">
+      <div class="calc-field">
+        <label>⟦Как вас зовут|Атыңыз кім⟧</label>
+        <input type="text" id="lead-name" class="g-search" placeholder="⟦Ербол|Ербол⟧">
+      </div>
+      <div class="calc-field">
+        <label>⟦Телефон|Телефон⟧</label>
+        <input type="tel" id="lead-phone" class="g-search" placeholder="+7 707 000 00 00" inputmode="tel">
+      </div>
+      <div class="calc-field">
+        <label>⟦Тип заведения|Мекеме түрі⟧</label>
+        <select id="lead-type" class="g-search">
+          <option>⟦Кафе или ресторан|Кафе немесе мейрамхана⟧</option>
+          <option>⟦Фастфуд, столовая|Фастфуд, асхана⟧</option>
+          <option>⟦Магазин|Дүкен⟧</option>
+          <option>⟦Бильярд, караоке|Бильярд, караоке⟧</option>
+          <option>⟦Салон красоты|Сұлулық салоны⟧</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" onclick="sendLead()">⟦Отправить заявку|Өтінім жіберу⟧</button>
+      <p class="total-note" id="lead-note">⟦Заявка придёт в WhatsApp. Или позвоните сами: +7 707 214 88 30|Өтінім WhatsApp-қа келеді. Немесе өзіңіз қоңырау шалыңыз: +7 707 214 88 30⟧</p>
+    </div>
+  </div>
+</section>
+
+<script>
+function sendLead() {
+  var n = document.getElementById('lead-name').value.trim();
+  var p = document.getElementById('lead-phone').value.trim();
+  var t = document.getElementById('lead-type').value;
+  var note = document.getElementById('lead-note');
+  if (!n || !p) {
+    note.textContent = '⟦Заполните имя и телефон|Атыңыз бен телефоныңызды толтырыңыз⟧';
+    note.style.color = '#d43f44';
+    return;
+  }
+  var msg = '⟦Заявка с сайта Dastarhan|Dastarhan сайтынан өтінім⟧%0A%0A' +
+            '⟦Имя|Аты⟧: ' + encodeURIComponent(n) + '%0A' +
+            '⟦Телефон|Телефон⟧: ' + encodeURIComponent(p) + '%0A' +
+            '⟦Заведение|Мекеме⟧: ' + encodeURIComponent(t);
+  window.open('https://wa.me/77072148830?text=' + msg, '_blank');
+  note.textContent = '⟦Спасибо! Открываем WhatsApp — нажмите «Отправить».|Рахмет! WhatsApp ашылуда — «Жіберу» басыңыз.⟧';
+  note.style.color = '#177a48';
+}
+</script>
 
 <!-- ФИНАЛЬНЫЙ CTA -->
 <section class="sec" id="try">

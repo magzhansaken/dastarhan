@@ -1,4 +1,4 @@
-import { calcPrice, fmtKzt, plural, priceCaption, PLANS, EXTRA_TERMINAL_PRICE } from './calc.mjs';
+import { calcPrice, fmtKzt, plural, priceCaption, PLANS, EXTRA_TERMINAL_PRICE } from '../js/calc.js';
 let pass=0, fail=0;
 const eq=(n,g,w)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};
 

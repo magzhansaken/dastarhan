@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#12141a"/>
+<rect x="60" y="60" width="1080" height="510" rx="24" fill="#1c1f27" stroke="rgba(255,255,255,.07)"/>
+<text x="110" y="180" font-family="-apple-system,Segoe UI,sans-serif" font-size="30" font-weight="700" fill="#e8833a">Dastarhan</text>
+<text x="110" y="280" font-family="-apple-system,Segoe UI,sans-serif" font-size="62" font-weight="700" fill="#f2f4f8">Система для кафе,</text>
+<text x="110" y="355" font-family="-apple-system,Segoe UI,sans-serif" font-size="62" font-weight="700" fill="#f2f4f8">сделанная здесь</text>
+<text x="110" y="430" font-family="-apple-system,Segoe UI,sans-serif" font-size="28" fill="#9aa3b2">Webkassa · Kaspi · налог 3% в отчёте · казахский интерфейс</text>
+<rect x="110" y="480" width="200" height="56" rx="12" fill="#e8833a"/>
+<text x="145" y="517" font-family="-apple-system,Segoe UI,sans-serif" font-size="20" font-weight="600" fill="#fff">14 дней бесплатно</text>
+<text x="350" y="517" font-family="-apple-system,Segoe UI,sans-serif" font-size="20" fill="#9aa3b2">dastarhan.kz</text>
+</svg>

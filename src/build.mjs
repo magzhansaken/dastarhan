@@ -31,6 +31,15 @@ export function findEmptySides(tpl) {
   return bad;
 }
 
+/** Подставляет og:title и og:description из <title> и meta description страницы. */
+export function fillOg(html) {
+  const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1] || 'Dastarhan';
+  const desc = (html.match(/<meta name="description" content="([^"]*)"/) || [])[1]
+    || 'Касса, склад, финансы и доставка для заведений Казахстана.';
+  const esc = (s) => s.replace(/"/g, '&quot;');
+  return html.replaceAll('{{OGTITLE}}', esc(title)).replaceAll('{{OGDESC}}', esc(desc));
+}
+
 function render(tplPath, lang, outPath, canon) {
   const tpl = readFileSync(tplPath, 'utf8');
   let html = pickLang(tpl, lang);
@@ -39,7 +48,9 @@ function render(tplPath, lang, outPath, canon) {
     .replaceAll('{{ROOT}}', lang === 'kk' ? '../' : '')
     .replaceAll('{{CANON}}', canon)
     .replaceAll('{{RU_ON}}', lang === 'ru' ? 'on' : '')
-    .replaceAll('{{KK_ON}}', lang === 'kk' ? 'on' : '');
+    .replaceAll('{{KK_ON}}', lang === 'kk' ? 'on' : '')
+    .replaceAll('{{OGLOCALE}}', lang === 'kk' ? 'kk_KZ' : 'ru_KZ');
+  html = fillOg(html);
   mkdirSync(dirname(outPath), { recursive: true });
   writeFileSync(outPath, html);
   return html.length;
@@ -72,6 +83,9 @@ function main() {
   mkdirSync(DIST, { recursive: true });
   cpSync(join(SRC, 'css'), join(DIST, 'css'), { recursive: true });
   cpSync(join(SRC, 'js'), join(DIST, 'js'), { recursive: true });
+  for (const f of ['favicon.svg', 'og.svg']) {
+    if (existsSync(join(SRC, f))) cpSync(join(SRC, f), join(DIST, f));
+  }
 
   let total = 0;
   for (const [tpl, out, canon] of PAGES) {
@@ -96,7 +110,9 @@ function main() {
           .replaceAll('{{RU_ON}}', lang === 'ru' ? 'on' : '')
           .replaceAll('{{KK_ON}}', lang === 'kk' ? 'on' : '')
           .replaceAll('{{SLUG}}', v.slug)
-          .replaceAll('{{TITLE}}', lang === 'kk' ? v.kk : v.ru);
+          .replaceAll('{{TITLE}}', lang === 'kk' ? v.kk : v.ru)
+          .replaceAll('{{OGLOCALE}}', lang === 'kk' ? 'kk_KZ' : 'ru_KZ');
+        html = fillOg(html);
         // блоки, специфичные для вертикали: <v-cafe>…</v-cafe> оставляем только свой
         html = html.replace(/<v-(\w+)>([\s\S]*?)<\/v-\1>/g, (_, slug, body) => (slug === v.slug ? body : ''));
         const out = join(DIST, lang === 'kk' ? 'kk' : '', 'pages', `${v.slug}.html`);
@@ -122,7 +138,9 @@ function main() {
           .replaceAll('{{RU_ON}}', lang === 'ru' ? 'on' : '')
           .replaceAll('{{KK_ON}}', lang === 'kk' ? 'on' : '')
           .replaceAll('{{SLUG}}', p.slug)
-          .replaceAll('{{TITLE}}', lang === 'kk' ? p.kk : p.ru);
+          .replaceAll('{{TITLE}}', lang === 'kk' ? p.kk : p.ru)
+          .replaceAll('{{OGLOCALE}}', lang === 'kk' ? 'kk_KZ' : 'ru_KZ');
+        html = fillOg(html);
         html = html.replace(/<v-(\w+)>([\s\S]*?)<\/v-\1>/g, (_, slug, body) => (slug === p.slug ? body : ''));
         const out = join(DIST, lang === 'kk' ? 'kk' : '', 'pages', `${p.slug}.html`);
         mkdirSync(dirname(out), { recursive: true });
@@ -132,6 +150,38 @@ function main() {
       console.log(`  ✓ pages/${p.slug}.html (ru + kk)`);
     }
   }
+
+  // robots.txt
+  writeFileSync(join(DIST, 'robots.txt'),
+    'User-agent: *\nAllow: /\n\nSitemap: https://dastarhan.duckdns.org:8443/sitemap.xml\n');
+
+  // sitemap.xml
+  const base = 'https://dastarhan.duckdns.org:8443';
+  const urls = ['/', '/pricing.html'];
+  for (const v of VERTICALS) urls.push(`/pages/${v.slug}.html`);
+  for (const p of PAGES_SIMPLE) urls.push(`/pages/${p.slug}.html`);
+  const today = new Date().toISOString().slice(0, 10);
+  const entries = urls.flatMap((u) => ['', '/kk'].map((pre) => `  <url>
+    <loc>${base}${pre}${u}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>${u === '/' ? '1.0' : '0.8'}</priority>
+  </url>`)).join('\n');
+  writeFileSync(join(DIST, 'sitemap.xml'),
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`);
+
+  // 404
+  const notFound = readFileSync(join(DIST, 'index.html'), 'utf8')
+    .replace(/<title>[^<]*<\/title>/, '<title>Страница не найдена — Dastarhan</title>')
+    .replace(/<section class="hero">[\s\S]*?<\/section>/,
+      `<section class="hero"><div class="wrap" style="text-align:center;padding:80px 0">
+      <div class="eyebrow">Ошибка 404</div>
+      <h1 style="margin:14px 0 18px">Такой страницы нет</h1>
+      <p class="lead" style="max-width:34em;margin:0 auto 28px">Возможно, ссылка устарела или в адресе опечатка.</p>
+      <a class="btn btn-primary btn-lg" href="/">На главную</a>
+      </div></section>`);
+  writeFileSync(join(DIST, '404.html'), notFound);
+  console.log('  ✓ robots.txt, sitemap.xml, 404.html');
 
   console.log(`\nСобрано в ${DIST}, суммарно ${Math.round(total / 1024)} КБ`);
 }
