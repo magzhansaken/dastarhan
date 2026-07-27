@@ -1,4 +1,4 @@
-# API Dastarhan. Многоступенчатая сборка: сборка отдельно, рантайм лёгкий.
+# API Dastarhan. Двухступенчатая сборка.
 FROM node:20-alpine AS build
 WORKDIR /build
 RUN npm i -g pnpm@9
@@ -11,15 +11,16 @@ RUN cd apps/api && npx nest build
 
 FROM node:20-alpine AS runtime
 WORKDIR /app
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl openssl
 RUN npm i -g pnpm@9
 COPY package.json pnpm-workspace.yaml ./
 COPY packages ./packages
 COPY apps/api/package.json ./apps/api/
 RUN pnpm install --prod --no-frozen-lockfile
+# Prisma Client генерируем здесь: pnpm раскладывает пакеты симлинками,
+# копировать node_modules между стадиями ненадёжно
+RUN npx prisma generate --schema packages/db/schema.prisma
 COPY --from=build /build/apps/api/dist ./apps/api/dist
-COPY --from=build /build/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /build/node_modules/@prisma ./node_modules/@prisma
 ENV NODE_ENV=production
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
