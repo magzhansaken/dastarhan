@@ -62,10 +62,13 @@ export class TerminalsController {
     const sub = await this.prisma.subscription.findFirst({
       where: { accountId: req.user.acc },
       orderBy: { createdAt: 'desc' },
-      include: { plan: true },
     });
+    // Subscription хранит только planId — тариф читаем отдельно
+    const plan = sub
+      ? await this.prisma.plan.findUnique({ where: { id: sub.planId } })
+      : null;
 
-    const limit = sub?.plan?.terminalsPerLocation ?? 1;
+    const limit = plan?.terminalsPerLocation ?? 1;
     const used = await this.prisma.terminal.count({
       where: { locationId: dto.locationId, isActive: true },
     });
@@ -74,7 +77,7 @@ export class TerminalsController {
       throw new ForbiddenException({
         code: 'TERMINAL_LIMIT',
         used, limit,
-        message: `На тарифе «${sub?.plan?.name ?? '—'}» доступно ${limit} касс на точку`,
+        message: `На тарифе «${plan?.name ?? '—'}» доступно ${limit} касс на точку`,
       });
     }
 
@@ -156,8 +159,10 @@ export class TerminalsController {
     const sub = await this.prisma.subscription.findFirst({
       where: { accountId },
       orderBy: { createdAt: 'desc' },
-      include: { plan: true },
     });
+    const plan = sub
+      ? await this.prisma.plan.findUnique({ where: { id: sub.planId } })
+      : null;
 
     // Постоянный ключ: 32 символа из криптостойкого источника
     const deviceKey = Array.from(
@@ -177,7 +182,7 @@ export class TerminalsController {
       locationId: terminal.locationId,
       locationName: terminal.location.name,
       accountName: terminal.location.account.name,
-      license: this.buildLicense(sub),
+      license: this.buildLicense(sub, plan),
     };
   }
 
@@ -206,15 +211,17 @@ export class TerminalsController {
     const sub = await this.prisma.subscription.findFirst({
       where: { accountId: terminal.location.accountId },
       orderBy: { createdAt: 'desc' },
-      include: { plan: true },
     });
+    const plan = sub
+      ? await this.prisma.plan.findUnique({ where: { id: sub.planId } })
+      : null;
 
     return {
       terminalId: terminal.id,
       isActive: terminal.isActive,
       // Серверное время: касса сверяет с локальным и ловит перевод часов назад
       serverTime: new Date().toISOString(),
-      license: this.buildLicense(sub),
+      license: this.buildLicense(sub, plan),
     };
   }
 
@@ -223,7 +230,7 @@ export class TerminalsController {
    * При неоплате касса продолжает работать до конца grace — точка
    * не встаёт посреди дня из-за забытого платежа.
    */
-  private buildLicense(sub: any) {
+  private buildLicense(sub: any, plan: any) {
     if (!sub) {
       return {
         status: 'NONE', plan: null, features: [],
@@ -238,9 +245,9 @@ export class TerminalsController {
 
     return {
       status: sub.status,
-      plan: sub.plan?.code ?? null,
-      planName: sub.plan?.name ?? null,
-      features: (sub.plan?.modules as string[]) ?? [],
+      plan: plan?.code ?? null,
+      planName: plan?.name ?? null,
+      features: (plan?.modules as string[]) ?? [],
       validUntil: sub.periodEnd,
       graceUntil: grace,
       canSell: now <= grace,

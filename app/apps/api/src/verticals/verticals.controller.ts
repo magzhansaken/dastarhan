@@ -23,7 +23,7 @@ export class VerticalsController {
     const weighted = parseWeightBarcode(code);
     if (weighted) {
       const product = await this.prisma.product.findFirst({
-        where: { barcodes: { some: { code: String((weighted as any).plu) } } },
+        where: { barcodes: { some: { value: String((weighted as any).plu) } } },
         select: { id: true, name: true, basePrice: true, unit: true },
       }).catch(() => null);
 
@@ -38,7 +38,7 @@ export class VerticalsController {
     }
 
     const product = await this.prisma.product.findFirst({
-      where: { barcodes: { some: { code } } },
+      where: { barcodes: { some: { value: code } } },
       select: { id: true, name: true, basePrice: true, unit: true, isWeighted: true },
     });
 

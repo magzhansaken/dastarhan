@@ -20,12 +20,15 @@ export class PlatformController {
     const sub = await this.prisma.subscription.findFirst({
       where: { accountId: req.user.acc },
       orderBy: { createdAt: 'desc' },
-      include: { plan: true },
     });
 
     if (!sub) {
       return { status: 'NONE', features: [], graceUntil: null };
     }
+
+    // У Subscription нет relation на Plan — только planId, поэтому
+    // тариф забираем отдельным запросом
+    const plan = await this.prisma.plan.findUnique({ where: { id: sub.planId } });
 
     const now = new Date();
     const grace = new Date(sub.periodEnd);
@@ -38,14 +41,14 @@ export class PlatformController {
 
     return {
       status: sub.status,
-      plan: sub.plan?.code ?? null,
-      planName: sub.plan?.name ?? null,
+      plan: plan?.code ?? null,
+      planName: plan?.name ?? null,
       periodEnd: sub.periodEnd,
       graceUntil: grace,
       locationsCount: sub.locationsCount,
-      terminalsPerLocation: sub.plan?.terminalsPerLocation ?? 1,
+      terminalsPerLocation: plan?.terminalsPerLocation ?? 1,
       // modules хранится как Json — список кодов функций тарифа
-      features: (sub.plan?.modules as string[]) ?? [],
+      features: (plan?.modules as string[]) ?? [],
       canSell,
       reportsOpen: paid,
       daysLeft: Math.max(0, Math.ceil((grace.getTime() - now.getTime()) / 86400_000)),

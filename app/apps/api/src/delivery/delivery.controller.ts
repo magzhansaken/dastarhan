@@ -61,11 +61,13 @@ export class DeliveryController {
       return { inZone: false, canDeliver: false, reason: 'OUT_OF_ZONE' };
     }
 
+    // Тип Zone в логике не содержит name — оно только в БД
+    const zoneRow = zones.find((z) => z.id === res.zone.id);
     return {
       inZone: true,
       canDeliver: true,
       zoneId: res.zone.id,
-      name: res.zone.name,
+      name: zoneRow?.name ?? null,
       fee: res.fee,
       minOrder: res.zone.minOrder,
       etaMinutes: res.zone.etaMinutes,
@@ -84,8 +86,15 @@ export class DeliveryController {
 
     const infos = await this.prisma.deliveryInfo.findMany({
       where: { tripId: trip.id },
-      include: { order: { select: { id: true, number: true, total: true, status: true } } },
     });
+
+    // Связи DeliveryInfo → Order в схеме нет, только orderId:
+    // читаем заказы одним запросом и сопоставляем по id
+    const orders = await this.prisma.order.findMany({
+      where: { id: { in: infos.map((i) => i.orderId) } },
+      select: { id: true, number: true, total: true, status: true },
+    });
+    const orderById = new Map(orders.map((o) => [o.id, o]));
 
     // Долг = собрано наличными минус сданное. Курьер видит эту цифру
     // в шапке приложения постоянно — чтобы знать, сколько сдавать
@@ -100,14 +109,14 @@ export class DeliveryController {
       cashDebt,
       orders: infos.map((i) => ({
         orderId: i.orderId,
-        number: (i as any).order?.number ?? null,
+        number: orderById.get(i.orderId)?.number ?? null,
         address: i.address,
         phone: i.phone,
         comment: i.comment,
         promisedAt: i.promisedAt,
         deliveryFee: i.deliveryFee,
-        total: (i as any).order?.total ?? 0,
-        status: (i as any).order?.status ?? null,
+        total: orderById.get(i.orderId)?.total ?? 0,
+        status: orderById.get(i.orderId)?.status ?? null,
       })),
     };
   }
