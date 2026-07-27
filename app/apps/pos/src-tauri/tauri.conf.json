@@ -19,7 +19,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' https://dastarhan.duckdns.org https://*.dastarhan.kz; img-src 'self' data: https:"
+      "csp": "default-src 'self'; connect-src 'self' https://dastarhan.duckdns.org https://*.dastarhan.kz; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'"
     }
   },
   "bundle": {

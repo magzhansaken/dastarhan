@@ -6,12 +6,31 @@ import { createRoot } from 'react-dom/client';
 import './ui/pos.css';
 import { PinScreen } from './ui/screens/PosScreens';
 
-// В мобильном приложении относительных путей нет — адрес сервера явный.
-// В браузере при разработке работает прокси Vite.
-const API = (import.meta as any).env?.VITE_API_URL
-  || (location.protocol === 'file:' || location.hostname === 'localhost' && (window as any).Capacitor
-      ? 'https://dastarhan.duckdns.org/api/v1'
-      : '/api/v1');
+// В упакованном приложении (Android через Capacitor, Windows через Tauri)
+// относительных путей нет — сервер нужно указывать явно.
+// Относительный путь оставляем только для разработки в браузере,
+// где работает прокси Vite.
+const SERVER = 'https://dastarhan.duckdns.org/api/v1';
+
+function resolveApi(): string {
+  const env = (import.meta as any).env?.VITE_API_URL;
+  if (env) return env;
+
+  const w = window as any;
+  const packaged =
+    !!w.Capacitor ||                      // Android
+    !!w.__TAURI__ || !!w.__TAURI_INTERNALS__ ||  // Windows
+    location.protocol === 'file:' ||
+    location.protocol === 'tauri:' ||
+    location.hostname === 'tauri.localhost';
+
+  // Дев-режим Vite: порт 5173/5174 и обычный http
+  const dev = location.port === '5173' || location.port === '5174';
+
+  return packaged || !dev ? SERVER : '/api/v1';
+}
+
+const API = resolveApi();
 
 const KEY = 'dastarhan.deviceKey';
 const LIC = 'dastarhan.license';
