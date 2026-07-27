@@ -4,6 +4,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth/auth.service';
+import { AuthController } from './auth/auth.controller';
 import { PermissionsGuard } from './auth/permissions.guard';
 import { PrismaService } from './core/prisma.service';
 import { HealthController } from './core/health.controller';
@@ -19,7 +20,7 @@ import { ReportsController } from './reports/reports.controller';
       signOptions: { expiresIn: '12h' },
     }),
   ],
-  controllers: [HealthController, SyncController, ReportsController],
+  controllers: [HealthController, SyncController, ReportsController, AuthController],
   providers: [AuthService, PermissionsGuard, PrismaService],
 })
 export class AppModule {}
