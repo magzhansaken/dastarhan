@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Dastarhan POS",
+  "version": "1.0.0",
+  "identifier": "kz.dastarhan.pos",
+  "build": {
+    "beforeBuildCommand": "pnpm build",
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:5173"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Dastarhan POS",
+        "width": 1366,
+        "height": 768,
+        "fullscreen": false,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' https://dastarhan.duckdns.org https://*.dastarhan.kz; img-src 'self' data: https:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["msi", "nsis"],
+    "icon": ["icons/icon.ico"],
+    "publisher": "Dastarhan",
+    "shortDescription": "Касса для кафе и магазинов",
+    "longDescription": "Dastarhan POS — касса, работающая без интернета. Фискализация Webkassa, оплата Kaspi."
+  }
+}

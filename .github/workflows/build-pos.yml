@@ -1,0 +1,95 @@
+# Сборка кассы Dastarhan.
+# Windows-машину даёт GitHub — свой компьютер не нужен.
+# Запуск: вкладка Actions → Build POS → Run workflow.
+name: Build POS
+
+on:
+  workflow_dispatch:          # запуск кнопкой
+  push:
+    tags: ['v*']              # и автоматически на теги вида v1.0.0
+
+jobs:
+  windows:
+    name: Windows (.exe и .msi)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - name: Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Кеш Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: app/apps/pos/src-tauri
+
+      - name: Зависимости
+        working-directory: app
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Сборка
+        working-directory: app/apps/pos
+        run: pnpm exec tauri build
+
+      - name: Выложить артефакты
+        uses: actions/upload-artifact@v4
+        with:
+          name: dastarhan-pos-windows
+          path: |
+            app/apps/pos/src-tauri/target/release/bundle/msi/*.msi
+            app/apps/pos/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+
+  android:
+    name: Android (.apk)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: app/pnpm-lock.yaml
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Зависимости
+        working-directory: app
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Сборка фронтенда
+        working-directory: app/apps/pos
+        run: pnpm build
+
+      - name: Каркас Android
+        working-directory: app/apps/pos
+        run: |
+          pnpm exec cap add android || echo "android уже добавлен"
+          pnpm exec cap sync android
+
+      - name: APK
+        working-directory: app/apps/pos/android
+        run: chmod +x gradlew && ./gradlew assembleDebug
+
+      - name: Выложить артефакт
+        uses: actions/upload-artifact@v4
+        with:
+          name: dastarhan-pos-android
+          path: app/apps/pos/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
