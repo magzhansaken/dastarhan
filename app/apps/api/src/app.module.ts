@@ -14,6 +14,8 @@ import { ReportsController } from './reports/reports.controller';
 import { MenuController } from './menu/menu.controller';
 import { StockController } from './stock/stock.controller';
 import { OrdersController } from './orders/orders.controller';
+import { FinanceController } from './finance/finance.controller';
+import { GuestsController } from './guests/guests.controller';
 
 @Module({
   imports: [
@@ -24,7 +26,8 @@ import { OrdersController } from './orders/orders.controller';
       signOptions: { expiresIn: '12h' },
     }),
   ],
-  controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController],
+  controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
+    FinanceController, GuestsController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService],
 })
 export class AppModule {}
