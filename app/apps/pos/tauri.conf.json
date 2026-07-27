@@ -1,0 +1,10 @@
+{
+  "productName": "Dastarhan POS",
+  "identifier": "kz.dastarhan.pos",
+  "build": { "beforeBuildCommand": "pnpm build", "frontendDist": "../dist" },
+  "app": {
+    "windows": [{ "title": "Dastarhan POS", "fullscreen": true, "resizable": false }],
+    "security": { "csp": "default-src 'self'; connect-src 'self' https://*.dastarhan.kz" }
+  },
+  "bundle": { "active": true, "targets": ["msi"], "icon": ["icons/icon.ico"] }
+}

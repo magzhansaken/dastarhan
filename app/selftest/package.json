@@ -1,0 +1,7 @@
+{
+  "name": "dastarhan-selftest",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node check-all.mjs" },
+  "dependencies": { "react": "^18.3.0", "react-dom": "^18.3.0", "esbuild": "^0.24.0" }
+}

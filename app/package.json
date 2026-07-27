@@ -1,0 +1,35 @@
+{
+  "name": "dastarhan",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,office,pos -c blue,green,yellow \"pnpm dev:api\" \"pnpm dev:office\" \"pnpm dev:pos\"",
+    "dev:api": "pnpm --filter @dastarhan/api dev",
+    "dev:office": "pnpm --filter @dastarhan/backoffice dev",
+    "dev:pos": "pnpm --filter @dastarhan/pos dev",
+    "build": "pnpm -r build",
+    "db:generate": "prisma generate --schema packages/db/schema.prisma",
+    "db:push": "prisma db push --schema packages/db/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema packages/db/schema.prisma",
+    "db:deploy": "prisma migrate deploy --schema packages/db/schema.prisma",
+    "db:seed": "tsx packages/db/seed.ts",
+    "db:studio": "prisma studio --schema packages/db/schema.prisma",
+    "setup": "pnpm install && pnpm db:generate && pnpm db:push && pnpm db:seed",
+    "test": "node scripts/run-tests.mjs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "prisma": "^6.1.0",
+    "typescript": "^5.7.2",
+    "esbuild": "^0.24.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.1.0",
+    "argon2": "^0.41.1",
+    "tsx": "^4.19.2"
+  }
+}

@@ -1,0 +1,104 @@
+// Dastarhan POS — Этап 7: Доставка
+// Глубина по лучшему из 5 (главный образец — r_keeper Delivery, 618 статей):
+//  - статусная машина с ОБЯЗАТЕЛЬНЫМ ядром + настраиваемые имена, строгий
+//    порядок — r_keeper «Статусы заказа»
+//  - зоны = ПОЛИГОНЫ, могут пересекаться (разные минималки/цены/время);
+//    выбирается лучшая для клиента — r_keeper «Зоны доставок»
+//  - курьеры: назначение, рейс из нескольких заказов, приложение курьера,
+//    РАСЧЁТ С КУРЬЕРОМ (наличные у курьера = его долг до сдачи в кассу) —
+//    r_keeper «Расчёт с курьерами» + отчёты по курьерам
+//  - вебхуки на смену статуса (интеграции) — r_keeper «Подписка на статусы»
+//  - promise time и просрочка (тепловая карта как метрика) — r_keeper
+//  - агрегаторы: адаптер Wolt/Glovo/Kwaaka (набор КЗ — Paloma/Poster)
+
+// ═══════════════ ДОСТАВОЧНЫЙ ЗАКАЗ ═══════════════
+
+// Расширение Order (mode=DELIVERY) деталями доставки
+model DeliveryInfo {
+  id        String   @id @default(cuid())
+  orderId   String   @unique
+  customerId String?          // клиент из Этапа 6 (телефон!)
+  phone     String            // телефон получателя (нормализованный)
+  address   String
+  lat       Decimal?
+  lng       Decimal?
+  zoneId    String?
+  comment   String?
+  // Время: ближайшее или к сроку (r_keeper: предзаказы)
+  scheduledAt DateTime?       // null = как можно скорее
+  promisedAt  DateTime        // обещанное время (SLA; просрочка = метрика)
+  deliveryFee Int   @default(0) // тиыны, по зоне
+  courierId   String?
+  tripId      String?
+  // Источник: own | wolt | glovo | kwaaka | telegram | qr
+  source      String @default("own")
+  externalId  String?         // id заказа в агрегаторе
+  status      String @default("NEW") // машина статусов ниже (в логике)
+  statusLog   Json   @default("[]")  // [{status, at, byUserId}]
+}
+
+// ═══════════════ ЗОНЫ (полигоны, r_keeper) ═══════════════
+
+model DeliveryZone {
+  id         String  @id @default(cuid())
+  locationId String
+  name       String
+  // Полигон: [[lat,lng],...] — зоны МОГУТ пересекаться (r_keeper);
+  // при попадании в несколько выбирается лучшая для клиента (логика)
+  polygon    Json
+  minOrder   Int     @default(0)     // минимальная сумма заказа
+  deliveryFee Int    @default(0)     // стоимость доставки
+  freeFrom   Int?                    // бесплатно от суммы (null = никогда)
+  etaMinutes Int     @default(60)    // обещание времени для зоны
+  isActive   Boolean @default(true)
+  priority   Int     @default(0)     // при равной цене — выше приоритет
+}
+
+// ═══════════════ КУРЬЕРЫ ═══════════════
+
+model Courier {
+  id         String  @id @default(cuid())
+  accountId  String
+  userId     String  @unique  // сотрудник с ролью COURIER (Этап 0)
+  transport  String  @default("foot") // foot | bike | car
+  isOnline   Boolean @default(false)
+  lastLat    Decimal?
+  lastLng    Decimal?
+  lastSeenAt DateTime?
+}
+
+// Рейс: курьер везёт НЕСКОЛЬКО заказов за выезд (r_keeper: назначение)
+model CourierTrip {
+  id        String   @id @default(cuid())
+  courierId String
+  startedAt DateTime @default(now())
+  closedAt  DateTime?
+  // Наличные, собранные в рейсе − сданные в кассу = долг курьера
+  cashCollected Int @default(0)
+  cashReturned  Int @default(0)
+}
+
+// ═══════════════ ВЕБХУКИ СТАТУСОВ (r_keeper «подписка») ═══════════════
+
+model DeliveryWebhook {
+  id        String  @id @default(cuid())
+  accountId String
+  url       String
+  // Какие статусы слать (пусто = все)
+  statuses  Json    @default("[]")
+  secret    String
+  isActive  Boolean @default(true)
+}
+
+// ═══════════════ АГРЕГАТОРЫ ═══════════════
+
+// Подключение агрегатора точки: адаптер по типу, ключи в credentials
+model AggregatorLink {
+  id         String  @id @default(cuid())
+  locationId String
+  type       String  // 'wolt' | 'glovo' | 'kwaaka' | 'yandex' (тип = адаптер)
+  credentials Json
+  // Меню-синк: пушить ли стоп-лист и цены (у всех агрегаторов КЗ есть API)
+  syncStopList Boolean @default(true)
+  isActive   Boolean @default(true)
+}

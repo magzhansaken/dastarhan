@@ -1,0 +1,232 @@
+// Dastarhan POS — Этап 1: Меню и техкарты (расширение schema.prisma)
+// Глубина каждого решения откалибрована по лучшему из 5 конкурентов:
+//  - типы номенклатуры и «блюдо vs товар» — Poster (what-is-the-difference)
+//  - техкарта с брутто/нетто и потерями — iiko + Poster cost-calculation
+//  - ВЕРСИОННОСТЬ техкарт — QuickResto (versionnost): смена рецепта без
+//    потери истории себестоимости прошлых продаж
+//  - модификаторы с СОБСТВЕННЫМИ техкартами (списывают склад) — Poster
+//    examples-of-dish-modifiers (13.7K) + QuickResto modifikatory (66K)
+//  - размеры порций/конфигурации — QuickResto konfiguratsii
+//  - цены по точкам — Poster updateProductPrice(spot) + QuickResto связки продаж
+//  - штрихкоды и фасовки — Paloma (розница) + Poster packs
+//  - SERVICE-тип — Paloma (салон/бильярд: услуги без склада)
+
+// ═══════════════ КАТЕГОРИИ ═══════════════
+
+model MenuCategory {
+  id        String  @id @default(cuid())
+  accountId String
+  parentId  String?           // дерево категорий (все 5 поддерживают вложенность)
+  parent    MenuCategory?  @relation("CatTree", fields: [parentId], references: [id])
+  children  MenuCategory[] @relation("CatTree")
+  name      String
+  nameKk    String?           // казахское название (ядро локализации)
+  color     String?           // цвет плитки на кассе (Poster/QuickResto)
+  sortOrder Int     @default(0)
+  isDeleted Boolean @default(false)  // soft-delete: восстановление (QR recover*)
+
+  products Product[]
+  @@index([accountId, parentId])
+}
+
+// ═══════════════ НОМЕНКЛАТУРА ═══════════════
+
+// Урок Poster «блюдо vs товар» + Paloma «услуги»:
+// GOODS      — товар: покупается и продаётся как есть (бутылка колы). Склад: штучно.
+// DISH       — блюдо: продаётся, списывается ПО ТЕХКАРТЕ.
+// PREPACK    — полуфабрикат: НЕ продаётся, имеет техкарту, живёт на складе
+//              (соус, тесто). Урок QuickResto polufabrikaty (26K).
+// INGREDIENT — ингредиент: только закупается и списывается (мука, мясо).
+// SERVICE    — услуга: продаётся, склада нет (стрижка, час бильярда).
+enum ProductType {
+  GOODS
+  DISH
+  PREPACK
+  INGREDIENT
+  SERVICE
+}
+
+enum MeasureUnit {
+  PCS   // штуки
+  KG    // килограммы (хранение в граммах внутри)
+  L     // литры (хранение в мл)
+  PORTION
+}
+
+model Product {
+  id         String      @id @default(cuid())
+  accountId  String
+  categoryId String?
+  category   MenuCategory? @relation(fields: [categoryId], references: [id])
+  type       ProductType
+  name       String
+  nameKk     String?
+  sku        String?     // артикул
+  unit       MeasureUnit @default(PCS)
+  // Базовая цена продажи в тиынах (минорные единицы KZT — деньги всегда int!)
+  basePrice  Int         @default(0)
+  vatRate    Int         @default(16) // НДС КЗ 16% с 2026 (факт из доков iiko)
+  imageUrl   String?
+  // Пищевая ценность на 100г (QuickResto: «Пищевая ценность блюда»)
+  nutrition  Json?       // { kcal, protein, fat, carbs }
+  isWeighted Boolean     @default(false) // весовой товар (r_keeper: весовые блюда)
+  isDeleted  Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+
+  barcodes     Barcode[]
+  packs        Pack[]
+  techCards    TechCard[]          // версии техкарт (DISH/PREPACK/модификатор)
+  prices       ProductPrice[]
+  availability ProductAvailability[]
+  modifierGroups ProductModifierGroup[]
+
+  @@index([accountId, type])
+  @@index([accountId, categoryId])
+}
+
+// Штрихкоды: несколько на товар (Paloma/Poster: розница)
+model Barcode {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  value     String
+  @@unique([productId, value])
+  @@index([value])
+}
+
+// Фасовки: «ящик 24 бут.» — приход в фасовках, списание в базовых единицах
+// (Poster packs: getPack/createPack)
+model Pack {
+  id         String  @id @default(cuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  name       String  // "ящик", "упаковка"
+  quantity   Decimal // сколько базовых единиц в фасовке
+}
+
+// Цены по точкам: одна позиция может стоить по-разному в разных точках
+// (Poster updateProductPrice per spot; QuickResto «связки продаж»)
+model ProductPrice {
+  id         String  @id @default(cuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  locationId String
+  price      Int     // тиыны
+  @@unique([productId, locationId])
+}
+
+// Доступность на точке (продаётся тут или нет) — «связки продаж» QuickResto
+model ProductAvailability {
+  id         String  @id @default(cuid())
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  locationId String
+  isForSale  Boolean @default(true)
+  @@unique([productId, locationId])
+}
+
+// ═══════════════ ТЕХКАРТЫ (С ВЕРСИЯМИ) ═══════════════
+
+// Версионность — ключевая глубина (QuickResto versionnost):
+// изменение рецепта создаёт НОВУЮ версию с датой вступления; прошлые продажи
+// продолжают считаться по старой версии → история себестоимости не ломается
+// (у Poster есть похожее: «редактировать меню задним числом»).
+model TechCard {
+  id           String   @id @default(cuid())
+  productId    String   // владелец: DISH, PREPACK или модификатор
+  product      Product  @relation(fields: [productId], references: [id])
+  version      Int      // 1, 2, 3...
+  effectiveFrom DateTime @default(now()) // с какого момента действует
+  // Выход порции в базовых единицах (грамм/мл/шт) — для фудкоста на порцию
+  outputQty    Decimal
+  note         String?  // технология приготовления (текст для повара)
+  createdAt    DateTime @default(now())
+
+  lines TechCardLine[]
+  @@unique([productId, version])
+  @@index([productId, effectiveFrom])
+}
+
+// Строка техкарты: брутто/нетто (урок iiko/Poster):
+// брутто — сколько взяли со склада (списание!), нетто — сколько в блюде
+// после обработки. Потери = (брутто-нетто)/брутто. Компонентом может быть
+// INGREDIENT, GOODS или PREPACK (вложенные техкарты — рекурсивный фудкост).
+model TechCardLine {
+  id           String   @id @default(cuid())
+  techCardId   String
+  techCard     TechCard @relation(fields: [techCardId], references: [id])
+  componentId  String   // Product.id (INGREDIENT | GOODS | PREPACK)
+  bruttoQty    Decimal  // списывается со склада
+  nettoQty     Decimal  // остаётся в блюде
+  sortOrder    Int      @default(0)
+}
+
+// ═══════════════ МОДИФИКАТОРЫ ═══════════════
+
+// Двухуровневая модель (Poster + QuickResto, объединено):
+// Группа (например «Молоко») с правилами выбора: minSelect/maxSelect,
+// обязательность; в группе — опции. У опции может быть СВОЯ ТЕХКАРТА
+// (сироп 20мл списывается со склада!) и своя цена (+200 тг).
+model ModifierGroup {
+  id        String  @id @default(cuid())
+  accountId String
+  name      String
+  nameKk    String?
+  minSelect Int     @default(0)  // 0 = необязательная (QR: «обязательное добавление»)
+  maxSelect Int     @default(1)  // 1 = одиночный выбор, >1 = множественный
+  isDeleted Boolean @default(false)
+
+  options  ModifierOption[]
+  products ProductModifierGroup[]
+}
+
+model ModifierOption {
+  id           String        @id @default(cuid())
+  groupId      String
+  group        ModifierGroup @relation(fields: [groupId], references: [id])
+  name         String
+  nameKk       String?
+  priceDelta   Int           @default(0) // тиыны, может быть 0 или отрицательным
+  // Списание склада опцией: либо простая связь на компонент+количество,
+  // либо полноценная техкарта через отдельный PREPACK-продукт
+  componentId  String?       // Product.id для простого списания
+  componentQty Decimal?
+  isDefault    Boolean       @default(false) // автодобавление (QR: «автоматическое»)
+  sortOrder    Int           @default(0)
+}
+
+// Привязка групп модификаторов к продуктам (многие-ко-многим)
+model ProductModifierGroup {
+  id        String        @id @default(cuid())
+  productId String
+  product   Product       @relation(fields: [productId], references: [id])
+  groupId   String
+  group     ModifierGroup @relation(fields: [groupId], references: [id])
+  sortOrder Int           @default(0)
+  @@unique([productId, groupId])
+}
+
+// ═══════════════ КОМБО ═══════════════
+
+// Комбо (все 5 имеют): набор слотов, в каждом — выбор из продуктов,
+// цена комбо фиксированная или скидочная (Poster: «блюда на выбор и
+// фиксированная цена» — паттерн из examples-of-dish-modifiers).
+model Combo {
+  id        String  @id @default(cuid())
+  accountId String
+  name      String
+  nameKk    String?
+  price     Int     // фиксированная цена комбо, тиыны
+  isDeleted Boolean @default(false)
+
+  slots ComboSlot[]
+}
+
+model ComboSlot {
+  id      String @id @default(cuid())
+  comboId String
+  combo   Combo  @relation(fields: [comboId], references: [id])
+  name    String // "Напиток", "Бургер"
+  choices Json   // [{productId, priceDelta}] — варианты слота
+  sortOrder Int  @default(0)
+}

@@ -1,0 +1,174 @@
+// Dastarhan POS — Этап 6: Гости и лояльность
+// Глубина по лучшему из 5:
+//  - клиент: идентификаторы (телефон/карта), группы, история — QuickResto (12.6K)
+//  - бонусы: % начисления по группам, оплата с лимитом % чека — QR + iikoCard
+//  - депозит И ДОЛГ: Paloma депозитно-долговая («запиши на меня» — реальная
+//    практика КЗ, никто кроме Paloma не делает — берём и углубляем лимитом)
+//  - палитра акций — QuickResto offers (20K): спецпредложение, N+1/подарок,
+//    промокод (обычный и РАСХОДУЕМЫЙ), абонемент, подарок от суммы
+//  - временные скидки (happy hours) — Paloma «временная скидка»
+//  - QR-меню стола и Telegram-бот — QuickResto (19 статей) как образец,
+//    оплата — Kaspi (наш козырь, у QR только росс. процессинги)
+
+// ═══════════════ КЛИЕНТЫ ═══════════════
+
+model Customer {
+  id        String   @id @default(cuid())
+  accountId String
+  // Телефон — главный ID в КЗ (нормализованный +7 7XX XXX XX XX)
+  phone     String
+  name      String?
+  birthday  DateTime?
+  cardNumber String? // физическая карта лояльности (опционально)
+  groupId   String?
+  group     CustomerGroup? @relation(fields: [groupId], references: [id])
+  // Telegram-привязка (бот Этапа 6)
+  telegramChatId String?
+  note      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  bonusTxs   BonusTx[]
+  depositTxs DepositTx[]
+  @@unique([accountId, phone])
+  @@index([accountId, groupId])
+}
+
+// Группы: «Свои», «VIP», «Сотрудники» — скидка/бонус % на группу (QR)
+model CustomerGroup {
+  id           String @id @default(cuid())
+  accountId    String
+  name         String
+  discountPct  Decimal @default(0)  // автоскидка группы
+  bonusPct     Decimal @default(0)  // % начисления бонусов группе
+  customers    Customer[]
+}
+
+// ═══════════════ БОНУСЫ ═══════════════
+
+// Программа аккаунта: базовый % начисления, лимит оплаты бонусами (% чека),
+// срок жизни бонусов (сгорание) — объединение QR + iikoCard.
+model BonusProgram {
+  id            String  @id @default(cuid())
+  accountId     String  @unique
+  accrualPct    Decimal @default(5)   // % от чека ПОСЛЕ скидок
+  maxPayPct     Decimal @default(50)  // бонусами можно закрыть до N% чека
+  expireDays    Int?                  // null = не сгорают
+  isActive      Boolean @default(true)
+}
+
+// Движения бонусов (ledger — как склад: баланс = Σ движений, полный аудит)
+enum BonusTxType {
+  ACCRUAL
+  PAYMENT
+  EXPIRE
+  MANUAL
+}
+
+model BonusTx {
+  id         String      @id @default(cuid())
+  customerId String
+  customer   Customer    @relation(fields: [customerId], references: [id])
+  type       BonusTxType
+  amount     Int         // тиыны; + начисление, − списание
+  orderId    String?
+  expiresAt  DateTime?   // для ACCRUAL при сгорании
+  note       String?
+  at         DateTime    @default(now())
+  @@index([customerId, at])
+}
+
+// ═══════════════ ДЕПОЗИТ И ДОЛГ (Paloma-модель, углублена) ═══════════════
+
+// Единый кошелёк: баланс > 0 — депозит, < 0 — долг (в пределах creditLimit).
+enum DepositTxType {
+  TOPUP
+  PAYMENT
+  REFUND
+  DEBT_REPAY
+  MANUAL
+}
+
+model CustomerWallet {
+  id          String @id @default(cuid())
+  customerId  String @unique
+  creditLimit Int    @default(0) // 0 = долг запрещён; >0 — «запиши на меня» до лимита
+}
+
+model DepositTx {
+  id         String        @id @default(cuid())
+  customerId String
+  customer   Customer      @relation(fields: [customerId], references: [id])
+  type       DepositTxType
+  amount     Int           // + пополнение/возврат, − оплата
+  orderId    String?
+  byUserId   String
+  at         DateTime      @default(now())
+  @@index([customerId, at])
+}
+
+// ═══════════════ СКИДКИ И АКЦИИ ═══════════════
+
+// Скидка: ручная (право order.discount.manual) или автоматическая по условиям.
+// Временное окно — happy hours (Paloma «временная скидка»).
+model Discount {
+  id        String  @id @default(cuid())
+  accountId String
+  name      String
+  pct       Decimal            // % на чек или позиции категории
+  categoryId String?           // null = весь чек
+  // Окно действия (happy hours): дни недели + часы
+  daysMask  Int     @default(127) // битовая маска Пн..Вс (127 = все)
+  fromMin   Int?    // минуты от полуночи, null = весь день
+  toMin     Int?
+  isActive  Boolean @default(true)
+}
+
+// Акции — палитра QuickResto offers:
+enum PromoType {
+  N_PLUS_GIFT   // каждый N-й товар бесплатно (3-й кофе)
+  GIFT_FROM_SUM // подарок от суммы заказа
+  PROMOCODE     // код: % или сумма; расходуемый (лимит использований)
+  SUBSCRIPTION  // абонемент: N использований товара (кофе-абонемент)
+}
+
+model Promo {
+  id        String    @id @default(cuid())
+  accountId String
+  type      PromoType
+  name      String
+  config    Json      // параметры типа: {n, productId} | {minSum, giftProductId} | {code, pct?, amount?, maxUses?} | {productId, uses}
+  validFrom DateTime?
+  validTo   DateTime?
+  isActive  Boolean   @default(true)
+
+  uses PromoUse[]
+}
+
+model PromoUse {
+  id         String   @id @default(cuid())
+  promoId    String
+  promo      Promo    @relation(fields: [promoId], references: [id])
+  customerId String?
+  orderId    String
+  at         DateTime @default(now())
+  @@index([promoId])
+}
+
+// ═══════════════ ГОСТЕВЫЕ КАНАЛЫ ═══════════════
+
+// QR-меню: токен стола → ссылка меню/заказа (Poster QR / QR Showcase)
+model QrTableToken {
+  id       String @id @default(cuid())
+  tableId  String @unique
+  token    String @unique // короткий, в QR-наклейке на столе
+}
+
+// Telegram-бот точки (конструктор — образец QR, 19 статей; оплата Kaspi)
+model TelegramBot {
+  id         String  @id @default(cuid())
+  accountId  String  @unique
+  botToken   String  // токен BotFather
+  welcomeText String?
+  isActive   Boolean @default(true)
+}

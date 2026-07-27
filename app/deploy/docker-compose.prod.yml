@@ -1,0 +1,74 @@
+# Dastarhan POS — production (VPS в Казахстане: ps.kz / hoster.kz — латентность
+# и закон о перс. данных). Анти-модель Paloma (MySQL на точке клиента) исключена:
+# на точке только касса-приложение с SQLite, вся база — здесь.
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # порт наружу НЕ публикуем — только внутренняя сеть
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+
+  api:
+    build: { context: .., dockerfile: deploy/Dockerfile.api }
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  backoffice:
+    build: { context: .., dockerfile: deploy/Dockerfile.backoffice }
+    restart: unless-stopped
+    env_file: .env
+    depends_on: [api]
+
+  # Caddy: авто-TLS (Let's Encrypt) без ручных сертификатов — минус одна
+  # причина звонка в поддержку (урок: чем меньше ручного, тем меньше тикетов)
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on: [api, backoffice]
+
+  # Бэкапы: pg_dump каждые 6 часов, ротация 14 дней, копия в S3-совместимое
+  # хранилище (урок r_keeper Archive: история спасает бизнесы)
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${DB_PASSWORD}
+    volumes:
+      - ./backup:/backup
+    entrypoint: ["/bin/sh", "/backup/backup-loop.sh"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
+volumes:
+  pgdata:
+  redisdata:
+  caddydata:

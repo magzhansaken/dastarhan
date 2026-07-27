@@ -1,0 +1,100 @@
+// Dastarhan POS — Этап 9: Вертикали (Магазин / Салон / Бильярд-Караоке)
+// Единственный образец мультивертикальности — Paloma (6 профилей), но её
+// глубина — онбординг-статьи. Мы делаем ГЛУБЖЕ образца:
+//  - МАГАЗИН: весовые штрихкоды EAN-13 (префикс 22/23 — стандарт весов СНГ,
+//    Paloma лишь «печать этикеток на весовой товар»), быстрая касса сканером,
+//    этикетки, НКТ-коды (обязательны в КЗ) — поле уже в Barcode/Product
+//  - САЛОН: записи к мастеру (календарь, длительность услуги, запрет
+//    double-booking), % мастера — уже умеет SalaryRule.salesPct (Этап 5)
+//  - БИЛЬЯРД/КАРАОКЕ/САУНА (Paloma-профиль): ПОВРЕМЕНКА — ресурс (стол/
+//    комната), тарифные окна (день/вечер/ночь), поминутный биллинг с
+//    пересечением окон, минимум и шаг округления; сессия закрывается
+//    SERVICE-позицией в обычный заказ (вся касса/оплаты/фискализация — даром)
+// Профиль вертикали (Account.vertical, Этап 0) включает модули в UI.
+
+// ═══════════════ САЛОН: ЗАПИСИ ═══════════════
+
+// Мастер = User; его услуги и график
+model MasterProfile {
+  id         String @id @default(cuid())
+  userId     String @unique
+  locationId String
+  // Рабочие часы по дням недели: [{dow:0..6, fromMin, toMin}]
+  schedule   Json   @default("[]")
+  isActive   Boolean @default(true)
+}
+
+// Услуга (Product type=SERVICE) получает длительность
+model ServiceDetails {
+  id          String @id @default(cuid())
+  productId   String @unique
+  durationMin Int    @default(60)
+  // Мастера, оказывающие услугу (пусто = все)
+  masterIds   Json   @default("[]")
+}
+
+enum AppointmentStatus {
+  BOOKED
+  CONFIRMED
+  ARRIVED
+  DONE
+  NO_SHOW
+  CANCELLED
+}
+
+model Appointment {
+  id         String   @id @default(cuid())
+  accountId  String
+  locationId String
+  masterId   String   // userId мастера
+  customerId String?
+  serviceId  String   // productId услуги
+  startAt    DateTime
+  endAt      DateTime // startAt + duration (фикс на момент записи)
+  status     AppointmentStatus @default(BOOKED)
+  orderId    String?  // заказ, созданный по факту оказания
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@index([locationId, masterId, startAt])
+}
+
+// ═══════════════ ПОВРЕМЕНКА: РЕСУРСЫ И СЕССИИ ═══════════════
+
+// Ресурс: бильярдный стол, караоке-комната, сауна, PC-место
+model TimedResource {
+  id         String @id @default(cuid())
+  locationId String
+  name       String  // «Стол 1», «VIP-комната»
+  // Тарифные окна: [{dow mask, fromMin, toMin, pricePerHour(тиыны)}]
+  tariffs    Json
+  // Правила округления
+  minChargeMin Int  @default(30) // минимум к оплате
+  stepMin      Int  @default(5)  // шаг округления вверх
+  // SERVICE-продукт, которым сессия попадает в заказ (фискализация!)
+  serviceProductId String
+  isActive   Boolean @default(true)
+}
+
+enum TimedSessionStatus {
+  RUNNING
+  PAUSED
+  FINISHED
+  CANCELLED
+}
+
+model TimedSession {
+  id         String   @id @default(cuid())
+  resourceId String
+  orderId    String?  // сессия прикрепляется к открытому заказу стола
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+  // Паузы: [{from, to}] — «поставили на паузу, ушли есть» (глубина, которой
+  // нет у Paloma: гость не платит за перерыв)
+  pauses     Json     @default("[]")
+  status     TimedSessionStatus @default(RUNNING)
+  // Итог на закрытии
+  billedMinutes Int?
+  amount        Int?  // тиыны
+  byUserId   String
+}

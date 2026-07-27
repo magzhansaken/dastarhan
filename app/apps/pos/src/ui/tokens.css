@@ -1,0 +1,27 @@
+/* Dastarhan POS — дизайн-токены кассы.
+   Из анализа: QuickResto (чек слева + плитки с фото + категории лентой),
+   Paloma (быстрые купюры, сдача крупно), Poster (минимализм, скорость).
+   Наши правила: тёмная тема (зал вечером), touch-цели ≥56px (палец, не мышь),
+   деньги всегда крупно, ≤6 касаний до чека. */
+:root {
+  --bg: #12141a;          /* фон зала */
+  --surface: #1c1f27;     /* карточки/панели */
+  --surface-2: #262a35;
+  --text: #f2f4f8;
+  --text-dim: #9aa3b2;
+  --accent: #e8833a;      /* дастархан-оранжевый: кнопки действия */
+  --accent-press: #cf6f28;
+  --ok: #3fb96f;          /* оплата/успех */
+  --danger: #e5484d;      /* удаление/стоп */
+  --warn: #f5b93e;        /* стоп-лист с остатком */
+  --radius: 14px;
+  --touch: 56px;          /* минимальная цель касания */
+  --gap: 10px;
+  --money-size: 34px;     /* итог чека */
+  --money-size-xl: 52px;  /* сдача на экране оплаты */
+}
+.btn { min-height: var(--touch); border-radius: var(--radius); font-size: 18px; font-weight: 600; }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-ok { background: var(--ok); color: #fff; }
+.tile { min-height: 92px; border-radius: var(--radius); background: var(--surface-2); }
+.money { font-variant-numeric: tabular-nums; font-weight: 700; }

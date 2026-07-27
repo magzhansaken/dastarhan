@@ -1,0 +1,166 @@
+// Dastarhan POS — Этап 2: Касса (расширение schema.prisma)
+// Глубина по лучшему из 5:
+//  - 3 режима обслуживания (зал/навынос/доставка) — Poster order-list
+//  - заказ ПО ГОСТЯМ: блюдо принадлежит гостю, переносы блюдо→гость,
+//    заказ→стол, заказ→официант, гость→стол — QuickResto perenos (9K)
+//  - частичная отправка на кухню, курсы подачи — QuickResto operatsii (10K)
+//  - смена: книжный vs фактический баланс, расхождения — Poster expected/actual
+//  - стоп-лист с количеством остатка — Poster (+прогноз) / Paloma stop-list
+//  - зал: дизайнер столов, цвета состояний — Poster table-color + Paloma дизайнер
+
+// ═══════════════ ЗАЛ И СТОЛЫ ═══════════════
+
+model Hall {
+  id         String @id @default(cuid())
+  locationId String
+  name       String // "Основной зал", "Терраса"
+  sortOrder  Int    @default(0)
+  tables     DiningTable[]
+}
+
+model DiningTable {
+  id       String @id @default(cuid())
+  hallId   String
+  hall     Hall   @relation(fields: [hallId], references: [id])
+  name     String // "1", "VIP-2"
+  seats    Int    @default(4)
+  // Геометрия для дизайнера зала (Paloma «дизайнер столов»)
+  x        Int    @default(0)
+  y        Int    @default(0)
+  shape    String @default("rect") // rect | round
+  isActive Boolean @default(true)
+  orders   Order[]
+}
+
+// ═══════════════ ЗАКАЗ ═══════════════
+
+// Режимы обслуживания — Poster: «в заведении, навынос, доставка»
+enum ServiceMode {
+  DINE_IN
+  TAKEOUT
+  DELIVERY
+}
+
+// Машина состояний заказа (объединение всех 5; DELIVERY-статусы — этап 7)
+enum OrderStatus {
+  OPEN       // набирается
+  CLOSED     // оплачен и закрыт
+  CANCELLED  // отменён (право order.cancel, у кассира — под PIN)
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  accountId   String
+  locationId  String
+  terminalId  String
+  shiftId     String
+  shift       CashShift   @relation(fields: [shiftId], references: [id])
+  number      Int         // человекочитаемый номер в смене
+  mode        ServiceMode @default(DINE_IN)
+  status      OrderStatus @default(OPEN)
+  tableId     String?
+  table       DiningTable? @relation(fields: [tableId], references: [id])
+  guestsCount Int         @default(1)
+  waiterId    String?     // ответственный (перенос заказ→официант — QR)
+  comment     String?
+  openedAt    DateTime    @default(now())
+  closedAt    DateTime?
+  // Деньги фиксируются на момент закрытия (тиыны)
+  subtotal    Int         @default(0)
+  discount    Int         @default(0)
+  total       Int         @default(0)
+
+  items OrderItem[]
+
+  @@unique([shiftId, number])
+  @@index([locationId, status])
+}
+
+// Позиция принадлежит ГОСТЮ (номер места) — фундамент переносов и
+// разделения счёта по гостям (QuickResto). guestNo=0 — «на стол».
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id])
+  productId  String
+  nameSnapshot String // имя на момент продажи (меню меняется — чек нет)
+  guestNo    Int      @default(0)
+  qty        Decimal  @default(1)
+  // Цена зафиксирована на момент добавления (урок версионности: история неизменна)
+  unitPrice  Int
+  modifiers  Json     // [{groupId, optionId, name, priceDelta, componentId, qty}]
+  course     Int      @default(1)  // курс подачи (QR «порядок подачи»)
+  comment    String?  // комментарий блюду (QR)
+  // Кухня: NEW → SENT (частичная отправка — QR «отправить часть заказа»)
+  kitchenStatus String @default("NEW") // NEW | SENT | COOKED | SERVED
+  sentAt     DateTime?
+  isRemoved  Boolean  @default(false) // удаление под PIN — след остаётся!
+  removedBy  String?
+  removedReason String?
+
+  @@index([orderId])
+}
+
+// ═══════════════ СТОП-ЛИСТ ═══════════════
+
+// Poster: стоп-лист с остатком порций (не просто вкл/выкл — «осталось 3»)
+model StopListEntry {
+  id         String   @id @default(cuid())
+  locationId String
+  productId  String
+  // null = полностью в стопе; число = осталось порций, авто-декремент при продаже
+  remainingQty Decimal?
+  reason     String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+
+  @@unique([locationId, productId])
+}
+
+// ═══════════════ КАССОВАЯ СМЕНА ═══════════════
+
+// Poster expected/actual: книжный баланс считается системой, фактический
+// вводится при закрытии; расхождение фиксируется и видно в отчётах.
+model CashShift {
+  id            String    @id @default(cuid())
+  accountId     String
+  locationId    String
+  terminalId    String
+  number        Int       // сквозной номер смены терминала
+  openedBy      String
+  openedAt      DateTime  @default(now())
+  openingCash   Int       // размен на старте, тиыны
+  closedBy      String?
+  closedAt      DateTime?
+  // На закрытии:
+  expectedCash  Int?      // книжный = opening + налич.продажи + внесения − изъятия − налич.возвраты
+  actualCash    Int?      // фактический (пересчёт кассиром)
+  discrepancy   Int?      // actual − expected (может быть ±)
+  note          String?
+
+  orders       Order[]
+  transactions CashTransaction[]
+
+  @@unique([terminalId, number])
+  @@index([locationId, openedAt])
+}
+
+// Внесения/изъятия (Poster: «расход, внесение, инкассация»)
+enum CashTxType {
+  CASH_IN
+  CASH_OUT
+  COLLECTION // инкассация
+}
+
+model CashTransaction {
+  id       String     @id @default(cuid())
+  shiftId  String
+  shift    CashShift  @relation(fields: [shiftId], references: [id])
+  type     CashTxType
+  amount   Int        // тиыны, всегда > 0; знак определяется типом
+  reason   String?
+  byUserId String
+  at       DateTime   @default(now())
+
+  @@index([shiftId])
+}

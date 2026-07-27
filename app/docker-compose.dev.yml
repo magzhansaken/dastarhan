@@ -1,0 +1,30 @@
+# Локальная разработка: поднимает только Postgres и Redis.
+# Приложения запускаются через pnpm dev — так удобнее отлаживать.
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dastarhan-db
+    environment:
+      POSTGRES_USER: dastarhan
+      POSTGRES_PASSWORD: dastarhan
+      POSTGRES_DB: dastarhan
+    ports:
+      - "5433:5432"      # 5433 снаружи — чтобы не конфликтовать с системным Postgres
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dastarhan"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: dastarhan-redis
+    ports:
+      - "6380:6379"
+    restart: unless-stopped
+
+volumes:
+  dbdata:
