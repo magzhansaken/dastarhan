@@ -1,0 +1,71 @@
+// apps/api/src/platform/platform.controller.ts
+// Тарифы и подписка. Отсюда касса узнаёт, какие функции ей доступны —
+// это основа схемы «установщик ставит программу с ограничениями тарифа».
+import { Controller, Get, UseGuards, Req } from '@nestjs/common';
+import { PrismaService } from '../core/prisma.service';
+import { JwtGuard } from '../auth/jwt.guard';
+
+@Controller('platform')
+@UseGuards(JwtGuard)
+export class PlatformController {
+  constructor(private prisma: PrismaService) {}
+
+  /**
+   * Состояние подписки и список доступных функций.
+   * Касса запрашивает при активации и раз в час — по этому ответу
+   * она решает, показывать раздел или ставить на него замок.
+   */
+  @Get('subscription')
+  async subscription(@Req() req: any) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { accountId: req.user.acc },
+      orderBy: { createdAt: 'desc' },
+      include: { plan: true },
+    });
+
+    if (!sub) {
+      return { status: 'NONE', features: [], graceUntil: null };
+    }
+
+    const now = new Date();
+    const grace = new Date(sub.periodEnd);
+    grace.setDate(grace.getDate() + (sub.graceDays ?? 7));
+
+    // Ключевое правило: касса не встаёт посреди дня. Даже при просрочке
+    // продажи идут до конца grace-периода — закрываются только отчёты.
+    const canSell = now <= grace;
+    const paid = now <= sub.periodEnd;
+
+    return {
+      status: sub.status,
+      plan: sub.plan?.code ?? null,
+      planName: sub.plan?.name ?? null,
+      periodEnd: sub.periodEnd,
+      graceUntil: grace,
+      locationsCount: sub.locationsCount,
+      terminalsPerLocation: sub.plan?.terminalsPerLocation ?? 1,
+      // modules хранится как Json — список кодов функций тарифа
+      features: (sub.plan?.modules as string[]) ?? [],
+      canSell,
+      reportsOpen: paid,
+      daysLeft: Math.max(0, Math.ceil((grace.getTime() - now.getTime()) / 86400_000)),
+    };
+  }
+
+  /** Список тарифов — для экрана смены тарифа в биллинге. */
+  @Get('plans')
+  async plans() {
+    const plans = await this.prisma.plan.findMany({
+      where: { isActive: true },
+      orderBy: { pricePerLocationMonth: 'asc' },
+    });
+
+    return plans.map((p) => ({
+      code: p.code,
+      name: p.name,
+      pricePerLocationMonth: p.pricePerLocationMonth,
+      terminalsPerLocation: p.terminalsPerLocation,
+      features: (p.modules as string[]) ?? [],
+    }));
+  }
+}

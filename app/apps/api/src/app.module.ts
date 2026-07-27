@@ -16,6 +16,7 @@ import { StockController } from './stock/stock.controller';
 import { OrdersController } from './orders/orders.controller';
 import { FinanceController } from './finance/finance.controller';
 import { GuestsController } from './guests/guests.controller';
+import { PlatformController } from './platform/platform.controller';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { GuestsController } from './guests/guests.controller';
     }),
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
-    FinanceController, GuestsController],
+    FinanceController, GuestsController, PlatformController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService],
 })
 export class AppModule {}
