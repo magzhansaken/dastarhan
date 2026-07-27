@@ -1,0 +1,10 @@
+{
+auto_https disable_redirects
+}
+dastarhan.duckdns.org:8443 {
+tls internal
+encode zstd gzip
+root * /srv
+file_server
+try_files {path} {path}/ {path}.html
+}

@@ -1,0 +1,15 @@
+services:
+  web:
+    image: caddy:2-alpine
+    container_name: dastarhan-web
+    restart: unless-stopped
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./site:/srv:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+volumes:
+  caddy_data:
+  caddy_config:
