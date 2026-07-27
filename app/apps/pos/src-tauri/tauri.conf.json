@@ -25,7 +25,6 @@
   "bundle": {
     "active": true,
     "targets": [
-      "msi",
       "nsis"
     ],
     "icon": [
@@ -37,5 +36,6 @@
     "publisher": "Dastarhan",
     "shortDescription": "Касса для кафе и магазинов",
     "longDescription": "Dastarhan POS — касса, работающая без интернета. Фискализация Webkassa, оплата Kaspi."
-  }
+  },
+  "mainBinaryName": "dastarhan-pos"
 }

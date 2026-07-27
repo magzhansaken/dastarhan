@@ -4,6 +4,10 @@ version = "1.0.0"
 description = "Dastarhan POS"
 edition = "2021"
 
+[[bin]]
+name = "dastarhan-pos"
+path = "src/main.rs"
+
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
