@@ -11,7 +11,7 @@ import {
   CanActivate, ExecutionContext, ForbiddenException, Injectable, SetMetadata,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import type { PermissionKey, PermissionState } from '@dastarhan/shared';
+import type { PermissionKey, PermissionState } from '../../../../packages/shared/src';
 
 export const RequirePermission = (p: PermissionKey) => SetMetadata('perm', p);
 

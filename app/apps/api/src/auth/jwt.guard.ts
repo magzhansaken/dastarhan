@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../core/prisma.service';
-import { ROLE_PRESETS } from '@dastarhan/shared';
+import { ROLE_PRESETS } from '../../../../packages/shared/src';
 
 @Injectable()
 export class JwtGuard implements CanActivate {

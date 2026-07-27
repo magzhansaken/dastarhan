@@ -3,7 +3,7 @@
 // повторная отправка того же события безопасна — фундамент офлайн-надёжности.
 import { Body, Controller, Post } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import type { SyncEvent } from '@dastarhan/shared';
+import type { SyncEvent } from '../../../../packages/shared/src';
 
 @Controller('sync')
 export class SyncController {

@@ -5,7 +5,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
-import { ROLE_PRESETS } from '@dastarhan/shared';
+import { ROLE_PRESETS } from './../shared/src/index';
 
 const prisma = new PrismaClient();
 const T = (tenge: number) => tenge * 100; // тенге → тиыны

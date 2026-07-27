@@ -8,7 +8,7 @@ import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/comm
 import { PrismaService } from '../core/prisma.service';
 import { PermissionsGuard, RequirePermission } from '../auth/permissions.guard';
 import { JwtGuard } from '../auth/jwt.guard';
-import { reduceOrder, orderTotals, OrderState, OrderEvent } from '@dastarhan/shared';
+import { reduceOrder, orderTotals, OrderState, OrderEvent } from '../../../../packages/shared/src';
 import {
   validateNewPayment, canCloseOrder, validateFiscalRequest, Pay,
 } from '../payments/payments.logic';
