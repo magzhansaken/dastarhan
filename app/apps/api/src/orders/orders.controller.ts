@@ -7,13 +7,14 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { PermissionsGuard, RequirePermission } from '../auth/permissions.guard';
+import { JwtGuard } from '../auth/jwt.guard';
 import { reduceOrder, orderTotals, OrderState, OrderEvent } from '@dastarhan/shared';
 import {
   validateNewPayment, canCloseOrder, validateFiscalRequest, Pay,
 } from '../payments/payments.logic';
 
 @Controller('orders')
-@UseGuards(PermissionsGuard)
+@UseGuards(JwtGuard, PermissionsGuard)
 export class OrdersController {
   constructor(private prisma: PrismaService) {}
 
