@@ -18,6 +18,18 @@
     "forceConsistentCasingInFileNames": true,
     "paths": { "@dastarhan/shared": ["../../packages/shared/src/index.ts"] }
   },
-  "include": ["src/**/*", "../../packages/shared/src/**/*"],
-  "exclude": ["node_modules", "dist", "**/__tests__/**", "**/*.test.ts", "**/*.test.tsx"]
+  "include": [
+    "src/**/*",
+    "../../packages/shared/src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/__tests__/**",
+    "../../packages/shared/src/__tests__/**",
+    "../../packages/shared/src/**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.test.mjs"
+  ]
 }
