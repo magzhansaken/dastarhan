@@ -1,6 +1,3 @@
-# API Dastarhan.
-# Одна стадия: pnpm раскладывает пакеты симлинками в .pnpm-store,
-# поэтому переносить node_modules между стадиями Docker ненадёжно.
 FROM node:20-alpine
 WORKDIR /app
 RUN apk add --no-cache curl openssl
@@ -11,14 +8,13 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 
 RUN pnpm install --no-frozen-lockfile
-# pnpm exec берёт локальную prisma 6.x из node_modules,
-# а не свежую 7.x с реестра (в 7-й убрали url в datasource)
 RUN pnpm exec prisma generate --schema packages/db/schema.prisma
 RUN cd apps/api && pnpm exec nest build
-RUN pnpm prune --prod || true
+# TypeScript сохраняет структуру каталогов от rootDir — находим точку входа
+RUN find apps/api/dist -name main.js -print > /app/.entry && cat /app/.entry
 
 ENV NODE_ENV=production
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
   CMD curl -fsS http://localhost:3000/api/v1/health || exit 1
-CMD ["node", "apps/api/dist/main.js"]
+CMD ["sh", "-c", "node $(cat /app/.entry)"]
