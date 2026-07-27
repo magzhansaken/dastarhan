@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} — Dastarhan</title>
+<link rel="canonical" href="https://dastarhan.kz{{CANON}}">
+<link rel="stylesheet" href="{{ROOT}}css/site.css">
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a href="{{ROOT}}" class="logo">Dastarhan</a>
+    <nav class="nav" id="nav">
+      <a href="{{ROOT}}#verticals">⟦Кому подходит|Кімге жарайды⟧</a>
+      <a href="{{ROOT}}pricing.html">⟦Тарифы|Тарифтер⟧</a>
+      <a href="{{ROOT}}pages/integrations.html">⟦Интеграции|Интеграциялар⟧</a>
+      <a href="{{ROOT}}pages/partners.html">⟦Партнёрам|Серіктестерге⟧</a>
+    </nav>
+    <div class="hdr-act">
+      <div class="lang">
+        <button class="{{RU_ON}}" onclick="location.href='/pages/{{SLUG}}.html'">Рус</button>
+        <button class="{{KK_ON}}" onclick="location.href='/kk/pages/{{SLUG}}.html'">Қаз</button>
+      </div>
+      <a class="btn btn-primary" href="{{ROOT}}pages/register.html">⟦Попробовать|Байқап көру⟧</a>
+      <button class="burger" onclick="document.getElementById('nav').classList.toggle('open')" aria-label="⟦Меню|Мәзір⟧">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ═══ ИНТЕГРАЦИИ ═══ -->
+<v-integrations>
+<section class="hero" style="padding-bottom:30px">
+  <div class="wrap">
+    <div class="eyebrow">⟦Интеграции|Интеграциялар⟧</div>
+    <h1 style="max-width:15em">⟦Всё, что нужно в Казахстане, — уже внутри|Қазақстанда керектің бәрі — ішінде⟧</h1>
+    <p class="lead" style="max-width:40em;margin-top:16px">⟦Ни одна из этих интеграций не продаётся отдельным модулем за отдельные деньги.|Бұл интеграциялардың бірде-бірі бөлек ақшаға сатылмайды.⟧</p>
+  </div>
+</section>
+<section class="sec" style="padding-top:0">
+  <div class="wrap grid-3">
+    <div class="card"><h3>Webkassa</h3><p>⟦Фискализация чеков. Подключение по логину, паролю и номеру кассы. Офлайн-чеки уходят очередью, когда связь вернётся.|Чектерді фискалдау. Логин, құпиясөз және касса нөмірі арқылы қосылу.⟧</p><span class="eyebrow">⟦Входит в тариф · 3 минуты|Тарифке кіреді · 3 минут⟧</span></div>
+    <div class="card"><h3>re:Kassa</h3><p>⟦Альтернативный оператор фискализации. Тот же интерфейс, что и Webkassa: выбираете при настройке точки.|Балама фискалдау операторы.⟧</p><span class="eyebrow">⟦Входит в тариф · 3 минуты|Тарифке кіреді · 3 минут⟧</span></div>
+    <div class="card"><h3>Kaspi</h3><p>⟦QR и терминал: сумма уходит на терминал сама, кассир ничего не набирает. Работает на кассе, в доставке и в Telegram-боте.|QR және терминал: сома терминалға өзі жіберіледі.⟧</p><span class="eyebrow">⟦Нужен свой договор с Kaspi|Kaspi-мен өз шартыңыз керек⟧</span></div>
+    <div class="card"><h3>Wolt</h3><p>⟦Заказы агрегатора приходят прямо в кассу со связанными позициями. Стоп-лист гасит блюда в Wolt автоматически.|Агрегатор тапсырыстары кассаға тікелей келеді.⟧</p><span class="eyebrow">⟦Входит в тариф Бизнес|Бизнес тарифіне кіреді⟧</span></div>
+    <div class="card"><h3>Telegram</h3><p>⟦Свой бот заказов: меню, корзина, телефон, оплата ссылкой Kaspi. Заказ падает на кухню как обычный.|Өз тапсырыс боты: мәзір, себет, телефон, Kaspi сілтемесімен төлем.⟧</p><span class="eyebrow">⟦Входит в тариф Бизнес|Бизнес тарифіне кіреді⟧</span></div>
+    <div class="card"><h3>1С ⟦для Казахстана|Қазақстан үшін⟧</h3><p>⟦Выгрузка проводок по продажам, складу и зарплате в формате, который принимает бухгалтерия.|Сатылым, қойма және жалақы бойынша жүргізулерді жүктеу.⟧</p><span class="eyebrow">⟦Планируется в v1.1|v1.1-де жоспарлануда⟧</span></div>
+  </div>
+</section>
+</v-integrations>
+
+<!-- ═══ ПАРТНЁРАМ ═══ -->
+<v-partners>
+<section class="hero" style="padding-bottom:30px">
+  <div class="wrap">
+    <div class="eyebrow">⟦Партнёрская программа|Серіктестік бағдарлама⟧</div>
+    <h1 style="max-width:15em">⟦Продавайте Dastarhan в своём городе|Өз қалаңызда Dastarhan сатыңыз⟧</h1>
+    <p class="lead" style="max-width:40em;margin-top:16px">⟦Комиссия приходит каждый месяц, пока клиент платит, а не один раз при продаже. Чем дольше клиент с вами — тем больше вы зарабатываете.|Комиссия сатылым кезінде бір рет емес, клиент төлеп тұрған сайын ай сайын келеді.⟧</p>
+  </div>
+</section>
+<section class="sec" style="padding-top:0">
+  <div class="wrap grid-3">
+    <div class="card"><span class="card-num">20%</span><h3>⟦Ежемесячно, а не разово|Бір рет емес, ай сайын⟧</h3><p>⟦С каждого платежа вашего клиента. Привели 10 точек по 18 000 ₸ — получаете 36 000 ₸ каждый месяц.|Клиентіңіздің әр төлемінен.⟧</p></div>
+    <div class="card"><h3>⟦Демо-стенды|Демо-стендтер⟧</h3><p>⟦Готовое демо-заведение с меню и чеками: показываете за 3 минуты, не настраивая ничего.|Мәзірі мен чектері бар дайын демо-мекеме.⟧</p></div>
+    <div class="card"><h3>⟦Материалы и обучение|Материалдар мен оқыту⟧</h3><p>⟦Скрипт продажи от проблемы клиента, презентации, ответы на возражения. Обучаем бесплатно.|Клиент мәселесінен бастап сату сценарийі.⟧</p></div>
+  </div>
+</section>
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="cta">
+      <h2>⟦Стать партнёром|Серіктес болу⟧</h2>
+      <p>⟦Напишите — обсудим ваш город и условия. Аккредитация занимает один день.|Жазыңыз — қалаңыз бен шарттарды талқылаймыз.⟧</p>
+      <div class="cta-btns">
+        <a class="btn btn-primary btn-lg" href="tel:+77072148830">⟦Позвонить: +7 707 214 88 30|Қоңырау шалу: +7 707 214 88 30⟧</a>
+      </div>
+    </div>
+  </div>
+</section>
+</v-partners>
+
+<!-- ═══ ДЕМО ═══ -->
+<v-demo>
+<section class="hero" style="padding-bottom:30px">
+  <div class="wrap">
+    <div class="eyebrow">⟦Живое демо|Тірі демо⟧</div>
+    <h1 style="max-width:15em">⟦Посмотрите кассу вживую — прямо в браузере|Кассаны тікелей браузерде көріңіз⟧</h1>
+    <p class="lead" style="max-width:40em;margin-top:16px">⟦Демо-точка с меню, столами и чеками. Ничего устанавливать не нужно, регистрация не требуется: пробейте заказ и посмотрите, как он приходит в отчёты.|Ештеңе орнатудың қажеті жоқ, тіркелу талап етілмейді.⟧</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary btn-lg" href="https://demo.dastarhan.kz">⟦Открыть кассу|Кассаны ашу⟧</a>
+      <a class="btn btn-lg" href="https://demo.dastarhan.kz/backoffice">⟦Открыть бэк-офис|Бэк-офисті ашу⟧</a>
+    </div>
+    <p class="hero-note">⟦Данные демо сбрасываются каждую ночь.|Демо деректері әр түні тазаланады.⟧</p>
+  </div>
+</section>
+<section class="sec" style="padding-top:0">
+  <div class="wrap grid-3">
+    <div class="card"><h3>⟦Что попробовать на кассе|Кассада не байқау керек⟧</h3><p>⟦Откройте стол, добавьте плов и чай, нажмите Оплата и дайте 10 000 — посмотрите, как считается сдача.|Үстел ашыңыз, палау мен шай қосыңыз.⟧</p></div>
+    <div class="card"><h3>⟦Что посмотреть в офисе|Кеңседе не көру керек⟧</h3><p>⟦Дашборд «Как идут дела», отчёт о прибыли со строкой налога 3% и техкарту с живым фудкостом.|«Жағдай қалай» тақтасы, 3% салық жолы бар пайда есебі.⟧</p></div>
+    <div class="card"><h3>⟦Проверьте офлайн|Офлайнды тексеріңіз⟧</h3><p>⟦Отключите интернет и продолжайте продавать: касса работает, а очередь синхронизации видна честно.|Интернетті өшіріп, сатуды жалғастырыңыз.⟧</p></div>
+  </div>
+</section>
+</v-demo>
+
+<!-- ═══ РЕГИСТРАЦИЯ ═══ -->
+<v-register>
+<section class="hero" style="padding-bottom:44px">
+  <div class="wrap" style="max-width:560px">
+    <div class="eyebrow">⟦14 дней бесплатно|14 күн тегін⟧</div>
+    <h1 style="font-size:38px">⟦Создать аккаунт|Аккаунт жасау⟧</h1>
+    <p class="lead" style="margin:14px 0 26px">⟦Без карты. После регистрации мастер настройки доведёт до первого чека за 15 минут.|Картасыз. Тіркелгеннен кейін баптау шебері 15 минутта алғашқы чекке жеткізеді.⟧</p>
+
+    <div class="calc-box">
+      <div class="calc-field">
+        <label>⟦Телефон|Телефон⟧</label>
+        <input type="tel" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="+7 707 000 00 00" inputmode="tel">
+      </div>
+      <div class="calc-field">
+        <label>⟦Название заведения|Мекеме атауы⟧</label>
+        <input type="text" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="⟦Кафе Дастархан|Дастархан кафесі⟧">
+      </div>
+      <div class="calc-field">
+        <label>⟦БИН или ИИН|БСН немесе ЖСН⟧</label>
+        <input type="text" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="000000000000" inputmode="numeric">
+      </div>
+      <div class="calc-field">
+        <label>⟦Тип бизнеса|Бизнес түрі⟧</label>
+        <div class="plans">
+          <div class="plan on"><div><div class="plan-name">⟦Кафе или ресторан|Кафе немесе мейрамхана⟧</div></div></div>
+          <div class="plan"><div><div class="plan-name">⟦Фастфуд, столовая|Фастфуд, асхана⟧</div></div></div>
+          <div class="plan"><div><div class="plan-name">⟦Магазин|Дүкен⟧</div></div></div>
+          <div class="plan"><div><div class="plan-name">⟦Бильярд, караоке|Бильярд, караоке⟧</div></div></div>
+          <div class="plan"><div><div class="plan-name">⟦Салон красоты|Сұлулық салоны⟧</div></div></div>
+        </div>
+      </div>
+      <a class="btn btn-primary btn-lg btn-block" href="#">⟦Создать и настроить|Жасау және баптау⟧</a>
+      <p class="total-note">⟦Нажимая кнопку, вы соглашаетесь с условиями использования. Пробный период — 14 дней, карта не нужна.|Түймені басу арқылы пайдалану шарттарымен келісесіз.⟧</p>
+    </div>
+  </div>
+</section>
+</v-register>
+
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-bottom">
+      <span>© 2026 Dastarhan</span>
+      <a href="{{ROOT}}">⟦На главную|Басты бетке⟧</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

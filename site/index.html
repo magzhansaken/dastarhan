@@ -1,124 +1,320 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dastarhan — система для кафе, магазина и клуба в Казахстане</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#f6f7fa;--card:#fff;--line:#e7eaf0;--text:#1a1f2b;--dim:#6b7484;--acc:#e8833a;--dark:#12141a;--ds:#1c1f27;--ds2:#262a35;--dt:#f2f4f8;--dd:#9aa3b2;--hair:rgba(255,255,255,.07);--r:14px;--sh:0 1px 2px rgba(16,20,30,.04)}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Inter,sans-serif;-webkit-font-smoothing:antialiased;font-size:16px;line-height:1.5}
-.w{max-width:1180px;margin:0 auto;padding:0 24px}
-a{color:#cf6f28;text-decoration:none}
-.mono{font-family:ui-monospace,Menlo,monospace;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
-h1{font-size:52px;font-weight:700;letter-spacing:-.03em;line-height:1.08}
-h2{font-size:34px;font-weight:700;letter-spacing:-.025em;margin:10px 0 12px}
-h3{font-size:19px;font-weight:650}
-.lead{font-size:18px;color:var(--dim);line-height:1.55}
-.btn{display:inline-flex;align-items:center;justify-content:center;height:54px;padding:0 26px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--text);font-size:17px;font-weight:650}
-.btn-p{background:var(--acc);border-color:var(--acc);color:#fff;box-shadow:0 10px 24px rgba(207,111,40,.16)}
-.hdr{position:sticky;top:0;z-index:50;background:rgba(246,247,250,.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
-.hi{display:flex;align-items:center;gap:26px;height:66px}
-.logo{font-size:20px;font-weight:700;color:var(--acc)}
-.nav{display:flex;gap:22px;flex:1}
-.nav a{color:var(--text);font-size:15px;font-weight:600}
-.hero{padding:64px 0}
-.hg{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
-.hero h1{margin:14px 0 18px}
-.cta{display:flex;gap:12px;margin:28px 0 14px;flex-wrap:wrap}
-.note{font-size:14px;color:var(--dim)}
-.logos{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:32px}
-.chip{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:14px;font-weight:650;box-shadow:var(--sh)}
-.shot{background:var(--dark);border-radius:18px;box-shadow:0 32px 70px rgba(16,20,30,.22);overflow:hidden;color:var(--dt)}
-.sb{height:46px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid var(--hair);font-size:13px;color:var(--dd)}
-.dot{width:8px;height:8px;border-radius:50%;background:#3fb96f}
-.sbody{display:grid;grid-template-columns:42% 58%;min-height:300px}
-.sc{border-right:1px solid var(--hair);padding:14px;display:flex;flex-direction:column}
-.sr{display:flex;justify-content:space-between;gap:10px;padding:9px 0;font-size:14px}
-.sr em{display:block;font-style:normal;font-size:12px;color:#f5b93e}
-.st{margin-top:auto;border-top:1px solid var(--hair);padding-top:12px}
-.st b{font-size:28px;display:block;text-align:right;font-variant-numeric:tabular-nums}
-.sp{margin-top:12px;height:44px;border-radius:10px;background:#3fb96f;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:650}
-.scat{display:flex;gap:6px;padding:12px 12px 0;flex-wrap:wrap}
-.scat span{font-size:12px;padding:6px 12px;border-radius:16px;border:1px solid var(--hair);color:var(--dd)}
-.scat .on{background:var(--ds2);color:var(--dt);border-color:transparent}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px}
-.tile{background:var(--ds2);border:1px solid var(--hair);border-radius:12px;padding:12px;min-height:74px;display:flex;flex-direction:column;justify-content:space-between;font-size:13px;font-weight:650}
-.tile b{color:var(--acc);font-size:13px}
-.tile.stop{opacity:.42}
-.sf{display:flex;justify-content:space-between;padding:10px 16px;border-top:1px solid var(--hair);font-size:12px;color:var(--dd)}
-.sec{padding:56px 0}
-.sh{max-width:46em;margin-bottom:32px}
-.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:24px 26px;display:flex;flex-direction:column;gap:10px}
-.card p{color:var(--dim);font-size:15px;line-height:1.55}
-.num{font-size:30px;font-weight:700;color:var(--acc)}
-.final{background:var(--dark);color:var(--dt);border-radius:20px;padding:48px 40px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px}
-.final h2{color:#fff}
-.final p{color:var(--dd);max-width:34em}
-.ftr{border-top:1px solid var(--line);padding:32px 0;margin-top:36px;color:var(--dim);font-size:14px}
-@media(max-width:1080px){h1{font-size:40px}.hg{grid-template-columns:1fr;gap:32px}.g5{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:860px){.g3,.g5{grid-template-columns:1fr 1fr}.nav{display:none}}
-@media(max-width:620px){h1{font-size:31px}h2{font-size:25px}.w{padding:0 16px}.hero{padding:32px 0}.sec{padding:36px 0}.g3,.g5{grid-template-columns:1fr}.cta{flex-direction:column}.cta .btn{width:100%}.sbody{grid-template-columns:1fr}.sc{border-right:none;border-bottom:1px solid var(--hair)}.tiles{grid-template-columns:repeat(2,1fr)}.final{padding:32px 20px}}
-</style></head><body>
-<header class="hdr"><div class="w hi">
-<a href="/" class="logo">Dastarhan</a>
-<nav class="nav"><a href="#kz">Почему мы</a><a href="#v">Кому подходит</a><a href="#try">Начать</a></nav>
-<a class="btn btn-p" style="height:44px;font-size:15px" href="#try">Попробовать</a>
-</div></header>
-<section class="hero"><div class="w hg">
-<div>
-<div class="mono">Касса · склад · финансы · доставка</div>
-<h1>Система для кафе,<br>сделанная здесь,<br>а не переведённая</h1>
-<p class="lead">Webkassa и re:Kassa из коробки, оплата Kaspi, налог 3% в отчёте о прибыли и полный казахский интерфейс. Касса работает, даже когда интернет пропал.</p>
-<div class="cta"><a class="btn btn-p" href="#try">Попробовать 14 дней</a><a class="btn" href="#kz">Как это работает</a></div>
-<p class="note">Без карты. Первый чек — через 15 минут после регистрации.</p>
-<div class="logos"><span class="note">Работает с</span><span class="chip">Webkassa</span><span class="chip">re:Kassa</span><span class="chip">Kaspi</span><span class="chip">Wolt</span><span class="chip">1С</span></div>
+<meta name="description" content="Касса, склад, финансы и доставка для заведений Казахстана. Webkassa и re:Kassa из коробки, оплата Kaspi, налог 3% в отчёте, полный казахский интерфейс. Работает без интернета.">
+<link rel="canonical" href="https://dastarhan.kz/">
+<link rel="alternate" hreflang="ru" href="https://dastarhan.kz/">
+<link rel="alternate" hreflang="kk" href="https://dastarhan.kz/kk/">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+
+<header class="hdr">
+  <div class="wrap hdr-in">
+    <a href="" class="logo">Dastarhan</a>
+    <nav class="nav" id="nav">
+      <a href="#kz">Почему мы</a>
+      <a href="#verticals">Кому подходит</a>
+      <a href="pricing.html">Тарифы</a>
+      <a href="#compare">Сравнение</a>
+    </nav>
+    <div class="hdr-act">
+      <div class="lang">
+        <button class="on" onclick="location.href='/'">Рус</button>
+        <button class="" onclick="location.href='/kk/'">Қаз</button>
+      </div>
+      <a class="btn btn-primary" href="#try">Попробовать</a>
+      <button class="burger" onclick="document.getElementById('nav').classList.toggle('open')" aria-label="Меню">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ПЕРВЫЙ ЭКРАН -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">Касса · склад · финансы · доставка</div>
+      <h1>Система для кафе,<br>сделанная здесь,<br>а не переведённая</h1>
+      <p class="lead">Webkassa и re:Kassa из коробки, оплата Kaspi, налог 3% в отчёте о прибыли и полный казахский интерфейс. Касса работает, даже когда интернет пропал.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" href="#try">Попробовать 14 дней</a>
+        <a class="btn btn-lg" href="#demo">Живое демо</a>
+      </div>
+      <p class="hero-note">Без карты. Первый чек — через 15 минут после регистрации.</p>
+      <div class="logos">
+        <span>Работает с</span>
+        <span class="logo-chip">Webkassa</span>
+        <span class="logo-chip">re:Kassa</span>
+        <span class="logo-chip">Kaspi</span>
+        <span class="logo-chip">Wolt</span>
+        <span class="logo-chip">1С</span>
+      </div>
+    </div>
+
+    <!-- макет кассы -->
+    <div class="shot" aria-label="Экран кассы Dastarhan">
+      <div class="shot-bar">
+        <span class="dot"></span>
+        <b>Стол 4</b>
+        <span>· Айгерим</span>
+        <span style="margin-left:auto">Webkassa</span>
+      </div>
+      <div class="shot-body">
+        <div class="shot-check">
+          <div class="shot-row"><span>Бешбармак <em>×2</em></span><span class="money">9 800 ₸</span></div>
+          <div class="shot-row"><span>Лагман <em>без лука</em></span><span class="money">1 800 ₸</span></div>
+          <div class="shot-row"><span>Тандырный чай</span><span class="money">900 ₸</span></div>
+          <div class="shot-total">
+            <span style="font-size:13px;color:var(--dark-dim)">Итого</span>
+            <span class="money">12 500 ₸</span>
+            <div class="shot-pay">Оплата</div>
+          </div>
+        </div>
+        <div>
+          <div class="shot-cat">
+            <span class="on">Горячее</span>
+            <span>Салаты</span>
+            <span>Напитки</span>
+          </div>
+          <div class="shot-tiles">
+            <div class="shot-tile">Тандыр<b>4 900 ₸</b></div>
+            <div class="shot-tile">Плов<b>2 400 ₸</b></div>
+            <div class="shot-tile stop">Манты · СТОП<b>—</b></div>
+            <div class="shot-tile">Куырдак<b>3 200 ₸</b></div>
+            <div class="shot-tile">Тандырный чай<b>450 ₸</b></div>
+            <div class="shot-tile">Кола 0.5<b>600 ₸</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="shot-foot">
+        <span class="pill-warn">Офлайн · 3 в очереди</span>
+        <span>Смена открыта · 08:14</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- СДЕЛАНО ЗДЕСЬ -->
+<section class="sec" id="kz">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Қазақстан</div>
+      <h2>Сделано здесь, а не переведено</h2>
+      <p class="lead">Пять вещей, из-за которых импортные системы приходится докручивать руками — у нас они в базе.</p>
+    </div>
+    <div class="grid-3">
+      <div class="card">
+        <h3>Фискализация из коробки</h3>
+        <p>Webkassa и re:Kassa на выбор. Чек уходит в ОФД сам, офлайн-чеки догоняют после связи.</p>
+      </div>
+      <div class="card">
+        <h3>Оплата так, как платят в Казахстане</h3>
+        <p>Kaspi QR и терминал на кассе, в доставке и в Telegram-боте. Сверка по выпискам без Excel.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">3%</span>
+        <h3>Прибыль по нашим правилам</h3>
+        <p>Отчёт о прибыли сразу со строкой налога 3% с оборота — видно чистые деньги, а не выручку минус закупки.</p>
+      </div>
+      <div class="card">
+        <h3>Полный казахский интерфейс</h3>
+        <p>Касса, бэк-офис, меню гостя и чеки на казахском. Не машинный перевод и не половина экранов.</p>
+      </div>
+      <div class="card">
+        <h3>Интернет пропал — касса работает</h3>
+        <p>Заказы, чеки и смены пишутся локально и синхронизируются сами. Очередь видна кассиру честно.</p>
+      </div>
+      <div class="card">
+        <span class="card-num">232</span>
+        <h3>Функции уже написаны</h3>
+        <p>И покрыты 593 автоматическими тестами. Мы не обещаем — мы показываем.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ВЕРТИКАЛИ -->
+<section class="sec" id="verticals">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Пять готовых настроек — не универсальная касса</div>
+      <h2>Одна система — пять типов бизнеса</h2>
+    </div>
+    <div class="grid-5">
+      <div class="card vert-card">
+        <h3>Кафе и ресторан</h3>
+        <p>Карта зала, курсы подачи, KDS, пречек, брони столов.</p>
+        <a class="card-link" href="pages/cafe.html">Подробнее →</a>
+      </div>
+      <div class="card vert-card">
+        <h3>Фастфуд</h3>
+        <p>Быстрый чек, модификаторы, доставка, Wolt и свой Telegram.</p>
+        <a class="card-link" href="pages/fastfood.html">Подробнее →</a>
+      </div>
+      <div class="card vert-card">
+        <h3>Магазин</h3>
+        <p>Штрихкоды, весовой товар, приёмка, инвентаризация, акцизы.</p>
+        <a class="card-link" href="pages/shop.html">Подробнее →</a>
+      </div>
+      <div class="card vert-card">
+        <h3>Бильярд и клуб</h3>
+        <p>Тарификация столов по минутам, бар на одном чеке, шахматка.</p>
+        <a class="card-link" href="pages/billiard.html">Подробнее →</a>
+      </div>
+      <div class="card vert-card">
+        <h3>Салон красоты</h3>
+        <p>Записи мастеров, услуги и расходники, зарплата с процента.</p>
+        <a class="card-link" href="pages/salon.html">Подробнее →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- СРАВНЕНИЕ -->
+<section class="sec" id="compare">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Чем это отличается от того, что вам показывали</h2>
+    </div>
+    <div class="cmp">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Обычно на рынке</th>
+            <th>Dastarhan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>Как купить</b></td>
+            <td class="them">Через дилера, после демонстрации</td>
+            <td class="us">Регистрация и первый чек за 15 минут</td>
+          </tr>
+          <tr>
+            <td><b>Язык</b></td>
+            <td class="them">Русский, казахский частично или никак</td>
+            <td class="us">Полностью Рус и Қаз, включая чеки</td>
+          </tr>
+          <tr>
+            <td><b>Фискализация и оплата</b></td>
+            <td class="them">Отдельный модуль, отдельные деньги</td>
+            <td class="us">Webkassa, re:Kassa, Kaspi — в базе</td>
+          </tr>
+          <tr>
+            <td><b>Если не оплатили вовремя</b></td>
+            <td class="them">Касса встаёт, точка не торгует</td>
+            <td class="us">Касса работает ещё 7 дней, отчёты ждут оплаты</td>
+          </tr>
+          <tr>
+            <td><b>Налоги в отчётах</b></td>
+            <td class="them">Считаете сами в Excel</td>
+            <td class="us">Прибыль со строкой 3% сразу</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ДЕМО -->
+<section class="sec" id="demo">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Посмотрите кассу вживую — прямо в браузере</h2>
+      <p class="lead">Демо-точка с меню, столами и чеками. Ничего не нужно устанавливать: пробейте заказ и посмотрите, как он приходит в отчёты.</p>
+    </div>
+    <a class="btn btn-primary btn-lg" href="pages/demo.html">Открыть живое демо</a>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-head"><h2>Коротко о главном</h2></div>
+    <div class="faq">
+      <details open>
+        <summary>Нужен ли дилер или установщик?</summary>
+        <p>Нет. Регистрируетесь сами, мастер настройки проводит по шести шагам, первый чек — через 15 минут. Обучение кассира занимает 10 минут по памятке.</p>
+      </details>
+      <details>
+        <summary>Что будет, если пропадёт интернет?</summary>
+        <p>Касса продолжит работать: заказы, чеки и печать. Данные сохранятся локально и уйдут на сервер, когда связь вернётся. Фискальные чеки встанут в очередь и пробьются автоматически.</p>
+      </details>
+      <details>
+        <summary>Какое оборудование подойдёт?</summary>
+        <p>Любой планшет на Android или моноблок на Windows. Принтеры чеков ESC/POS — Xprinter, Rongta, Epson. Сканеры штрихкодов подключаются как клавиатура.</p>
+      </details>
+      <details>
+        <summary>Можно ли перенести данные из другой системы?</summary>
+        <p>Да. Меню и товары загружаются из Excel, остатки — тоже. Накладную можно сфотографировать: ИИ-помощник распознает позиции и предложит черновик прихода.</p>
+      </details>
+      <details>
+        <summary>Сколько точек можно подключить?</summary>
+        <p>Сколько угодно. Цена считается за точку, первая касса на точке входит в тариф. Точки можно добавлять и убирать в любой месяц — пересчёт идёт со дня изменения.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<!-- ФИНАЛЬНЫЙ CTA -->
+<section class="sec" id="try">
+  <div class="wrap">
+    <div class="cta">
+      <div class="eyebrow" style="color:var(--dark-dim)">14 дней бесплатно</div>
+      <h2>Начните сегодня — первый чек уже через 15 минут</h2>
+      <p>Без карты и без звонка менеджеру. Не понравится — просто не продлевайте.</p>
+      <div class="cta-btns">
+        <a class="btn btn-primary btn-lg" href="pages/register.html">Создать аккаунт</a>
+        <a class="btn btn-ghost btn-lg" href="tel:+77072148830">Позвонить: +7 707 214 88 30</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="ftr">
+  <div class="wrap">
+    <div class="ftr-grid">
+      <div>
+        <div class="logo">Dastarhan</div>
+        <p class="ftr-about">Автоматизация общепита и розницы для Казахстана. Алматы, Абая 52.</p>
+      </div>
+      <div>
+        <h4>Продукт</h4>
+        <a href="pages/cafe.html">Касса</a>
+        <a href="pages/shop.html">Склад и техкарты</a>
+        <a href="pricing.html">Тарифы</a>
+        <a href="pages/integrations.html">Интеграции</a>
+      </div>
+      <div>
+        <h4>Кому</h4>
+        <a href="pages/cafe.html">Кафе и ресторан</a>
+        <a href="pages/fastfood.html">Фастфуд</a>
+        <a href="pages/billiard.html">Бильярд</a>
+        <a href="pages/salon.html">Салон</a>
+      </div>
+      <div>
+        <h4>Компания</h4>
+        <a href="pages/partners.html">Партнёрам</a>
+        <a href="pages/demo.html">Живое демо</a>
+        <a href="tel:+77072148830">+7 707 214 88 30</a>
+      </div>
+    </div>
+    <div class="ftr-bottom">
+      <span>© 2026 Dastarhan. Все права защищены.</span>
+      <span>Сделано в Казахстане</span>
+    </div>
+  </div>
+</footer>
+
+<div class="sticky-cta">
+  <a class="btn btn-primary" href="#try">Попробовать 14 дней</a>
 </div>
-<div class="shot">
-<div class="sb"><span class="dot"></span><b>Стол 4</b><span>· Айгерим</span><span style="margin-left:auto">Webkassa</span></div>
-<div class="sbody">
-<div class="sc">
-<div class="sr"><span>Бешбармак <em>×2</em></span><span>9 800 ₸</span></div>
-<div class="sr"><span>Лагман <em>без лука</em></span><span>1 800 ₸</span></div>
-<div class="sr"><span>Тандырный чай</span><span>900 ₸</span></div>
-<div class="st"><span style="font-size:13px;color:var(--dd)">Итого</span><b>12 500 ₸</b><div class="sp">Оплата</div></div>
-</div>
-<div>
-<div class="scat"><span class="on">Горячее</span><span>Салаты</span><span>Напитки</span></div>
-<div class="tiles">
-<div class="tile">Тандыр<b>4 900 ₸</b></div><div class="tile">Плов<b>2 400 ₸</b></div>
-<div class="tile stop">Манты · СТОП<b>—</b></div><div class="tile">Куырдак<b>3 200 ₸</b></div>
-<div class="tile">Чай<b>450 ₸</b></div><div class="tile">Кола<b>600 ₸</b></div>
-</div></div></div>
-<div class="sf"><span style="color:#f5b93e">Офлайн · 3 в очереди</span><span>Смена открыта · 08:14</span></div>
-</div>
-</div></section>
-<section class="sec" id="kz"><div class="w">
-<div class="sh"><div class="mono">Қазақстан</div><h2>Сделано здесь, а не переведено</h2>
-<p class="lead">Пять вещей, из-за которых импортные системы приходится докручивать руками — у нас они в базе.</p></div>
-<div class="g3">
-<div class="card"><h3>Фискализация из коробки</h3><p>Webkassa и re:Kassa на выбор. Чек уходит в ОФД сам, офлайн-чеки догоняют после связи.</p></div>
-<div class="card"><h3>Оплата как платят в Казахстане</h3><p>Kaspi QR и терминал на кассе, в доставке и в Telegram-боте. Сверка по выпискам без Excel.</p></div>
-<div class="card"><span class="num">3%</span><h3>Прибыль по нашим правилам</h3><p>Отчёт о прибыли сразу со строкой налога с оборота — видно чистые деньги, а не выручку минус закупки.</p></div>
-<div class="card"><h3>Полный казахский интерфейс</h3><p>Касса, бэк-офис, меню гостя и чеки на казахском. Не машинный перевод и не половина экранов.</p></div>
-<div class="card"><h3>Интернет пропал — касса работает</h3><p>Заказы, чеки и смены пишутся локально и синхронизируются сами. Очередь видна кассиру честно.</p></div>
-<div class="card"><span class="num">232</span><h3>Функции уже написаны</h3><p>И покрыты 854 автоматическими тестами. Мы не обещаем — мы показываем.</p></div>
-</div></div></section>
-<section class="sec" id="v" style="padding-top:0"><div class="w">
-<div class="sh"><div class="mono">Пять готовых настроек</div><h2>Одна система — пять типов бизнеса</h2></div>
-<div class="g5">
-<div class="card"><h3>Кафе и ресторан</h3><p>Карта зала, курсы подачи, KDS, пречек, брони столов.</p></div>
-<div class="card"><h3>Фастфуд</h3><p>Быстрый чек, модификаторы, доставка, Wolt и свой Telegram.</p></div>
-<div class="card"><h3>Магазин</h3><p>Штрихкоды, весовой товар, приёмка, инвентаризация.</p></div>
-<div class="card"><h3>Бильярд и клуб</h3><p>Тарификация столов по минутам, бар на одном чеке, шахматка.</p></div>
-<div class="card"><h3>Салон красоты</h3><p>Записи мастеров, услуги и расходники, зарплата с процента.</p></div>
-</div></div></section>
-<section class="sec" id="try" style="padding-top:0"><div class="w"><div class="final">
-<div class="mono" style="color:var(--dd)">14 дней бесплатно</div>
-<h2>Начните сегодня — первый чек уже через 15 минут</h2>
-<p>Без карты и без звонка менеджеру. Не понравится — просто не продлевайте.</p>
-<div class="cta" style="justify-content:center"><a class="btn btn-p" href="tel:+77072148830">Позвонить: +7 707 214 88 30</a></div>
-</div></div></section>
-<footer class="ftr"><div class="w" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px">
-<span>© 2026 Dastarhan · Автоматизация для Казахстана</span><span>Сделано в Казахстане</span>
-</div></footer>
-</body></html>
+
+</body>
+</html>
