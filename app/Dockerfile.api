@@ -10,11 +10,12 @@ COPY apps/api ./apps/api
 RUN pnpm install --no-frozen-lockfile
 RUN pnpm exec prisma generate --schema packages/db/schema.prisma
 RUN cd apps/api && pnpm exec nest build
-# TypeScript сохраняет структуру каталогов от rootDir — находим точку входа
-RUN find apps/api/dist -name main.js -print > /app/.entry && cat /app/.entry
+# Структура dist зависит от rootDir и набора файлов, поэтому точку входа
+# ищем при КАЖДОМ запуске, а не фиксируем на момент сборки
+RUN find apps/api/dist -name main.js -print
 
 ENV NODE_ENV=production
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \
   CMD curl -fsS http://localhost:3000/api/v1/health || exit 1
-CMD ["sh", "-c", "node $(cat /app/.entry)"]
+CMD ["sh", "-c", "node $(find /app/apps/api/dist -name main.js | head -1)"]
