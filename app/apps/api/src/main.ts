@@ -2,12 +2,13 @@
 // Точка входа API Dastarhan.
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { cors: true });
 
   app.use(helmet({ contentSecurityPolicy: false }));
   app.setGlobalPrefix('api/v1');
@@ -20,7 +21,7 @@ async function bootstrap() {
   }));
 
   // Касса шлёт пачки событий из офлайн-очереди — стандартного лимита мало
-  app.use(require('express').json({ limit: '5mb' }));
+  app.useBodyParser('json', { limit: '5mb' });
 
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port, '0.0.0.0');
