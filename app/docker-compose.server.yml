@@ -1,0 +1,50 @@
+# Серверное развёртывание Dastarhan.
+# Полная изоляция от tenderview и трейдинг-бота:
+#   · своя база в контейнере (порт 5433 только на localhost)
+#   · API наружу не смотрит — доступен только Caddy по имени контейнера
+#   · Node на хост не ставится
+name: dastarhan
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dastarhan-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dastarhan}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dastarhan}
+      POSTGRES_DB: ${POSTGRES_DB:-dastarhan}
+    ports:
+      - "127.0.0.1:5433:5432"   # только локально, снаружи недоступна
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dastarhan}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: dastarhan-api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-dastarhan}:${POSTGRES_PASSWORD:-dastarhan}@db:5432/${POSTGRES_DB:-dastarhan}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?нужно задать JWT_SECRET в .env}
+      PORT: 3000
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - default
+      - tenderview_default    # чтобы Caddy сайта мог достучаться
+
+volumes:
+  dbdata:
+
+networks:
+  tenderview_default:
+    external: true

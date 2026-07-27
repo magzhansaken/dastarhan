@@ -1,31 +1,53 @@
 {
-auto_https disable_redirects
+	auto_https disable_redirects
 }
+
+# Внутренний вход — сюда проксирует Caddy тендера
 :80 {
-encode zstd gzip
-root * /srv
-header /*.html Cache-Control "no-cache"
-header {
-X-Content-Type-Options nosniff
-X-Frame-Options SAMEORIGIN
--Server
+	encode zstd gzip
+
+	# API проекта
+	handle /api/* {
+		reverse_proxy dastarhan-api:3000
+	}
+
+	# Бэк-офис (соберём на этапе 2)
+	handle /office/* {
+		root * /srv
+		try_files {path} /office/index.html
+		file_server
+	}
+
+	# Сайт
+	handle {
+		root * /srv
+		header /*.html Cache-Control "no-cache"
+		header {
+			X-Content-Type-Options nosniff
+			X-Frame-Options SAMEORIGIN
+			-Server
+		}
+		file_server
+		try_files {path} {path}/ {path}.html
+	}
+
+	handle_errors {
+		rewrite /404.html
+		root * /srv
+		file_server
+	}
 }
-file_server
-try_files {path} {path}/ {path}.html
-handle_errors {
-rewrite /404.html
-file_server
-}
-}
+
+# Резервный прямой вход
 dastarhan.duckdns.org:8443 {
-tls internal
-encode zstd gzip
-root * /srv
-header /*.html Cache-Control "no-cache"
-file_server
-try_files {path} {path}/ {path}.html
-handle_errors {
-rewrite /404.html
-file_server
-}
+	tls internal
+	encode zstd gzip
+	handle /api/* {
+		reverse_proxy dastarhan-api:3000
+	}
+	handle {
+		root * /srv
+		file_server
+		try_files {path} {path}/ {path}.html
+	}
 }

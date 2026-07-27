@@ -1,0 +1,12 @@
+# Бэк-офис: собирается в статику, отдаётся Caddy сайта.
+FROM node:20-alpine AS build
+WORKDIR /build
+RUN npm i -g pnpm@9
+COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/backoffice ./apps/backoffice
+RUN pnpm install --no-frozen-lockfile
+RUN cd apps/backoffice && npx vite build --base=/office/
+
+FROM alpine AS export
+COPY --from=build /build/apps/backoffice/dist /out
