@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth/auth.service';
 import { AuthController } from './auth/auth.controller';
 import { PermissionsGuard } from './auth/permissions.guard';
+import { JwtGuard } from './auth/jwt.guard';
 import { PrismaService } from './core/prisma.service';
 import { HealthController } from './core/health.controller';
 import { SyncController } from './core/sync.controller';
@@ -21,6 +22,6 @@ import { ReportsController } from './reports/reports.controller';
     }),
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController],
-  providers: [AuthService, PermissionsGuard, PrismaService],
+  providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService],
 })
 export class AppModule {}

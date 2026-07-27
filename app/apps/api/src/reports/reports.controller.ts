@@ -5,9 +5,10 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { PermissionsGuard, RequirePermission } from '../auth/permissions.guard';
+import { JwtGuard } from '../auth/jwt.guard';
 
 @Controller('reports')
-@UseGuards(PermissionsGuard)
+@UseGuards(JwtGuard, PermissionsGuard)
 export class ReportsController {
   constructor(private prisma: PrismaService) {}
 
