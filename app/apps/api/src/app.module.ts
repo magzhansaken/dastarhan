@@ -16,10 +16,6 @@ import { StockController } from './stock/stock.controller';
 import { OrdersController } from './orders/orders.controller';
 import { FinanceController } from './finance/finance.controller';
 import { GuestsController } from './guests/guests.controller';
-// ВРЕМЕННО ОТКЛЮЧЁН (неверные связи Prisma): import { PlatformController } from './platform/platform.controller';
-// ВРЕМЕННО ОТКЛЮЧЁН (неверные связи Prisma): import { TerminalsController } from './platform/terminals.controller';
-// ВРЕМЕННО ОТКЛЮЧЁН (неверные связи Prisma): import { DeliveryController } from './delivery/delivery.controller';
-// ВРЕМЕННО ОТКЛЮЧЁН (неверные связи Prisma): import { VerticalsController } from './verticals/verticals.controller';
 
 @Module({
   imports: [
