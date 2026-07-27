@@ -11,6 +11,7 @@ import { PrismaService } from './core/prisma.service';
 import { HealthController } from './core/health.controller';
 import { SyncController } from './core/sync.controller';
 import { ReportsController } from './reports/reports.controller';
+import { MenuController } from './menu/menu.controller';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { ReportsController } from './reports/reports.controller';
       signOptions: { expiresIn: '12h' },
     }),
   ],
-  controllers: [HealthController, SyncController, ReportsController, AuthController],
+  controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService],
 })
 export class AppModule {}
