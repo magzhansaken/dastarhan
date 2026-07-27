@@ -1,26 +1,22 @@
-# API Dastarhan. Двухступенчатая сборка.
-FROM node:20-alpine AS build
-WORKDIR /build
-RUN npm i -g pnpm@9
-COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
-COPY packages ./packages
-COPY apps/api ./apps/api
-RUN pnpm install --no-frozen-lockfile
-RUN npx prisma generate --schema packages/db/schema.prisma
-RUN cd apps/api && npx nest build
-
-FROM node:20-alpine AS runtime
+# API Dastarhan.
+# Одна стадия: pnpm раскладывает пакеты симлинками в .pnpm-store,
+# поэтому переносить node_modules между стадиями Docker ненадёжно.
+FROM node:20-alpine
 WORKDIR /app
 RUN apk add --no-cache curl openssl
 RUN npm i -g pnpm@9
-COPY package.json pnpm-workspace.yaml ./
+
+COPY package.json pnpm-workspace.yaml tsconfig.base.json ./
 COPY packages ./packages
-COPY apps/api/package.json ./apps/api/
-RUN pnpm install --prod --no-frozen-lockfile
-# Prisma Client генерируем здесь: pnpm раскладывает пакеты симлинками,
-# копировать node_modules между стадиями ненадёжно
-RUN npx prisma generate --schema packages/db/schema.prisma
-COPY --from=build /build/apps/api/dist ./apps/api/dist
+COPY apps/api ./apps/api
+
+RUN pnpm install --no-frozen-lockfile
+# pnpm exec берёт локальную prisma 6.x из node_modules,
+# а не свежую 7.x с реестра (в 7-й убрали url в datasource)
+RUN pnpm exec prisma generate --schema packages/db/schema.prisma
+RUN cd apps/api && pnpm exec nest build
+RUN pnpm prune --prod || true
+
 ENV NODE_ENV=production
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=40s \

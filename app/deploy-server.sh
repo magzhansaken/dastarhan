@@ -16,7 +16,7 @@ sleep 8
 
 echo "── 4. Схема в базу"
 docker compose -f docker-compose.server.yml run --rm api \
-  npx prisma db push --schema packages/db/schema.prisma --accept-data-loss
+  pnpm exec prisma db push --schema packages/db/schema.prisma --accept-data-loss
 
 echo "── 5. Запуск API"
 docker compose -f docker-compose.server.yml up -d api
