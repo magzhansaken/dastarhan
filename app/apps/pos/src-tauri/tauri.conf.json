@@ -24,8 +24,16 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["msi", "nsis"],
-    "icon": ["icons/icon.ico"],
+    "targets": [
+      "msi",
+      "nsis"
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
     "publisher": "Dastarhan",
     "shortDescription": "Касса для кафе и магазинов",
     "longDescription": "Dastarhan POS — касса, работающая без интернета. Фискализация Webkassa, оплата Kaspi."
