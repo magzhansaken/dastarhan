@@ -25,6 +25,37 @@ function resolveApi(): string {
 const API = resolveApi();
 const KEY = 'dastarhan.deviceKey';
 const TOKEN = 'dastarhan.token';
+const QUEUE = 'dastarhan.queue';
+
+/**
+ * Очередь событий. Копим локально и отправляем при связи —
+ * это и есть офлайн-надёжность: чек не теряется, если интернет пропал
+ * в момент оплаты. Сервер идемпотентен по eventId, поэтому
+ * повторная отправка безопасна.
+ */
+function enqueue(ev: any) {
+  const q = JSON.parse(localStorage.getItem(QUEUE) ?? '[]');
+  q.push(ev);
+  localStorage.setItem(QUEUE, JSON.stringify(q));
+}
+
+async function flushQueue(token: string, terminalId: string): Promise<number> {
+  const q = JSON.parse(localStorage.getItem(QUEUE) ?? '[]');
+  if (!q.length) return 0;
+  try {
+    const r = await fetch(`${API}/sync/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ events: q }),
+    });
+    if (!r.ok) return q.length;
+    // Отправленные события убираем только после подтверждения сервера
+    localStorage.setItem(QUEUE, '[]');
+    return 0;
+  } catch {
+    return q.length;   // связи нет — оставляем в очереди
+  }
+}
 
 // ═══════════════ АКТИВАЦИЯ ═══════════════
 
@@ -46,6 +77,7 @@ function Activation({ onDone }: { onDone: () => void }) {
       localStorage.setItem(KEY, d.deviceKey);
       localStorage.setItem('dastarhan.place', d.locationName ?? '');
       localStorage.setItem('dastarhan.locationId', d.locationId ?? '');
+      localStorage.setItem('dastarhan.terminalId', d.terminalId ?? '');
       localStorage.setItem('dastarhan.license', JSON.stringify(d.license ?? {}));
       onDone();
     } catch {
@@ -82,6 +114,8 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [paying, setPaying] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [queued, setQueued] = useState(0);
+  const [online, setOnline] = useState(true);
 
   const locationId = localStorage.getItem('dastarhan.locationId') ?? '';
   const place = localStorage.getItem('dastarhan.place') ?? '';
@@ -97,6 +131,10 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
             .then((r) => (r.ok ? r.json() : [])).catch(() => []),
         ]);
         setCatalog(c);
+        // При каждом входе досылаем то, что накопилось офлайн
+        const left = await flushQueue(token, localStorage.getItem('dastarhan.terminalId') ?? '');
+        setQueued(left);
+        setOnline(left === 0);
         const m: Record<string, number | null> = {};
         for (const x of s ?? []) m[x.productId] = x.remaining;
         setStops(m);
@@ -137,7 +175,28 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
           { id: 'card', name: 'Карта', kind: 'CARD' },
         ]}
         onBack={() => setPaying(false)}
-        onConfirm={() => {
+        onConfirm={async (methodId, amount) => {
+          const terminalId = localStorage.getItem('dastarhan.terminalId') ?? '';
+          // Чек кладём в очередь ДО отправки: если связь оборвётся,
+          // продажа не потеряется
+          enqueue({
+            eventId: crypto.randomUUID(),
+            terminalId,
+            type: 'order.closed',
+            createdAt: new Date().toISOString(),
+            payload: {
+              orderId: order.orderId, number: order.number,
+              items: order.items.filter((i: any) => !i.isRemoved).map((i: any) => ({
+                productId: i.productId, name: i.name, qty: i.qty, unitPrice: i.unitPrice,
+              })),
+              total: t.subtotal, methodId, amount,
+              cashierId: user.id, closedAt: new Date().toISOString(),
+            },
+          });
+          const left = await flushQueue(token, terminalId);
+          setQueued(left);
+          setOnline(left === 0);
+
           // Новый заказ сразу после оплаты: кассир не ждёт
           setOrder(reduceOrder(null, {
             type: 'order.opened', orderId: crypto.randomUUID(),
@@ -153,7 +212,7 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
       order={order!}
       catalog={products}
       categories={catalog.categories.map((c: any) => ({ id: c.id, name: c.name, color: c.color }))}
-      online={true} unsyncedCount={0} fiscal="ok"
+      online={online} unsyncedCount={queued} fiscal={queued > 0 ? 'queued' : 'ok'}
       cashierName={user.name} tableName={place}
       onAdd={(p) => setOrder((o) => reduceOrder(o, {
         type: 'order.item.added', orderId: o!.orderId, itemId: crypto.randomUUID(),
