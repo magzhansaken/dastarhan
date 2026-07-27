@@ -5,6 +5,7 @@ import { Controller, Get, Query, UseGuards, BadRequestException } from '@nestjs/
 import { PrismaService } from '../core/prisma.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { parseWeightBarcode, tariffAt } from './verticals.logic';
+import type { Tariff } from './verticals.logic';
 
 @Controller('verticals')
 @UseGuards(JwtGuard)
@@ -86,11 +87,9 @@ export class VerticalsController {
       // JS getDay(): 0=воскресенье. tariffAt ждёт 0=понедельник —
       // без конвертации все тарифные окна сдвинулись бы на день
       const dow = (now.getDay() + 6) % 7;
-      const tariff = tariffAt(
-        ((r.tariffs as any) ?? []) as any,
-        dow,
-        now.getHours() * 60 + now.getMinutes(),
-      );
+      // Prisma отдаёт Json, который может быть null — приводим через unknown
+      const tariffs = (r.tariffs as unknown as Tariff[] | null) ?? [];
+      const tariff = tariffAt(tariffs, dow, now.getHours() * 60 + now.getMinutes());
       const rate = tariff ? (tariff as any).pricePerHour ?? (tariff as any).price ?? null : null;
 
       return {
