@@ -188,7 +188,8 @@ export function checkStopList(stop: Map<string, number | null>, productId: strin
 export function consumeStop(stop: Map<string, number | null>, productId: string, qty: number) {
   if (!stop.has(productId)) return;
   const rem = stop.get(productId);
-  if (rem === null) return;
+  // null = стоп без счётчика, undefined = ключа нет (защита строгого режима)
+  if (rem === null || rem === undefined) return;
   stop.set(productId, Math.max(0, rem - qty));
   if (stop.get(productId) === 0) stop.set(productId, null);
 }
