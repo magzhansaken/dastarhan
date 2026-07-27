@@ -8,6 +8,7 @@ import { PermissionsGuard } from './auth/permissions.guard';
 import { PrismaService } from './core/prisma.service';
 import { HealthController } from './core/health.controller';
 import { SyncController } from './core/sync.controller';
+import { ReportsController } from './reports/reports.controller';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { SyncController } from './core/sync.controller';
       signOptions: { expiresIn: '12h' },
     }),
   ],
-  controllers: [HealthController, SyncController],
+  controllers: [HealthController, SyncController, ReportsController],
   providers: [AuthService, PermissionsGuard, PrismaService],
 })
 export class AppModule {}
