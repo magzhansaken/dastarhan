@@ -16,10 +16,10 @@ import { StockController } from './stock/stock.controller';
 import { OrdersController } from './orders/orders.controller';
 import { FinanceController } from './finance/finance.controller';
 import { GuestsController } from './guests/guests.controller';
-import { PlatformController } from './platform/platform.controller';
-import { TerminalsController } from './platform/terminals.controller';
-import { DeliveryController } from './delivery/delivery.controller';
-import { VerticalsController } from './verticals/verticals.controller';
+// ВРЕМЕННО ОТКЛЮЧЁН (неверные связи Prisma): import { PlatformController } from './platform/platform.controller';
+// ВРЕМЕННО ОТКЛЮЧЁН (неверные связи Prisma): import { TerminalsController } from './platform/terminals.controller';
+// ВРЕМЕННО ОТКЛЮЧЁН (неверные связи Prisma): import { DeliveryController } from './delivery/delivery.controller';
+// ВРЕМЕННО ОТКЛЮЧЁН (неверные связи Prisma): import { VerticalsController } from './verticals/verticals.controller';
 
 @Module({
   imports: [
@@ -31,8 +31,7 @@ import { VerticalsController } from './verticals/verticals.controller';
     }),
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
-    FinanceController, GuestsController, PlatformController, TerminalsController,
-    DeliveryController, VerticalsController],
+    FinanceController, GuestsController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService],
 })
 export class AppModule {}
