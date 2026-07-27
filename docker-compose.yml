@@ -10,6 +10,12 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    networks:
+      - default
+      - tenderview_default
 volumes:
   caddy_data:
   caddy_config:
+networks:
+  tenderview_default:
+    external: true
