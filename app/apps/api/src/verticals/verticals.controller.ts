@@ -71,7 +71,9 @@ export class VerticalsController {
       },
     });
 
-    const byResource = new Map(sessions.map((s) => [s.resourceId, s]));
+    const byResource = new Map<string, (typeof sessions)[number]>(
+      sessions.map((s) => [s.resourceId, s]),
+    );
     const now = new Date();
 
     return resources.map((r) => {
@@ -102,7 +104,7 @@ export class VerticalsController {
         currentRate: rate,
         // Приблизительная сумма: точную посчитает billSession при закрытии,
         // с учётом пауз и минимального времени
-        approxAmount: rate ? Math.round((minutes / 60) * (rate as any)) : null,
+        approxAmount: rate != null ? Math.round((minutes / 60) * Number(rate)) : null,
       };
     });
   }
