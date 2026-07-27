@@ -32,7 +32,7 @@ export class WebkassaDriver implements FiscalDriver {
       body: JSON.stringify({ Login: this.cfg.login, Password: this.cfg.password }),
     });
     if (!r.ok) throw Object.assign(new Error(`Webkassa auth HTTP ${r.status}`), { retriable: true });
-    const data = await r.json();
+    const data = await r.json() as any;
     const token = data?.Data?.Token;
     if (!token) throw Object.assign(new Error('Webkassa: нет токена в ответе'), { retriable: true });
     this.token = token; this.tokenAt = Date.now();
@@ -65,7 +65,7 @@ export class WebkassaDriver implements FiscalDriver {
       });
       if (r.status === 401) { this.token = null; return { success: false, errorCode: 'AUTH', errorText: 'Токен истёк', retriable: true }; }
       if (!r.ok) return { success: false, errorCode: `HTTP_${r.status}`, errorText: 'Ошибка Webkassa', retriable: r.status >= 500 };
-      const data = await r.json();
+      const data = await r.json() as any;
       if (data?.Errors?.length) {
         const e = data.Errors[0];
         // Коды 4xx-логики Webkassa (например, «смена превысила 24ч») — не ретраим,

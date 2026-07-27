@@ -47,7 +47,7 @@ export const PERMISSIONS = {
   // ── CRM
   'crm.customer.view': 'База гостей',
   'crm.customer.edit': 'Экспорт базы гостей',
-  'crm.bonus.adjust': 'Изменение бонусов',
+  'crm.bonus.adjust': 'allowed',
 
   // ── Бэк-офис: меню и склад
   'menu.edit': 'Изменение техкарты',
@@ -193,14 +193,14 @@ export const ROLE_PRESETS: Record<string, { name: string; permissions: RolePermi
     permissions: {
       'cash.shift.open': 'allowed', 'cash.shift.close': 'allowed',
       'cash.xreport': 'allowed', 'cash.in': 'allowed', 'cash.out': 'allowed',
-      'order.create': 'Создание заказа', 'order.item.remove': 'Удаление позиции после кухни',
-      'order.cancel': 'Удаление позиции до кухни', 'order.discount.manual': 'Скидка на чек',
-      'order.reopen': 'Перенос заказа на другой стол', 'order.refund': 'Возврат по чеку', 'order.split': 'Печать копии чека',
-      'crm.customer.view': 'База гостей', 'crm.customer.edit': 'Экспорт базы гостей',
-      'crm.bonus.adjust': 'Изменение бонусов',
-      'menu.edit': 'Изменение техкарты', 'stock.supply': 'Приём поставки', 'stock.writeoff': 'Списание и порча',
-      'stock.inventory': 'Инвентаризация', 'stock.transfer': 'Изменение стоп-листа',
-      'finance.view': 'Отчёт о прибыли', 'reports.view': 'Журнал действий',
+      'order.create': 'allowed', 'order.item.remove': 'allowed',
+      'order.cancel': 'allowed', 'order.discount.manual': 'allowed',
+      'order.reopen': 'allowed', 'order.refund': 'allowed', 'order.split': 'allowed',
+      'crm.customer.view': 'allowed', 'crm.customer.edit': 'allowed',
+      'crm.bonus.adjust': 'allowed',
+      'menu.edit': 'allowed', 'stock.supply': 'allowed', 'stock.writeoff': 'allowed',
+      'stock.inventory': 'allowed', 'stock.transfer': 'allowed',
+      'finance.view': 'allowed', 'reports.view': 'allowed',
     },
   },
   CASHIER: {
@@ -213,25 +213,25 @@ export const ROLE_PRESETS: Record<string, { name: string; permissions: RolePermi
       'cash.in': 'allowed',
       // Изъятие денег — PIN старшего: кассир не выносит наличные сам
       'cash.out': 'elevated_pin',
-      'order.create': 'Создание заказа', 'order.split': 'Печать копии чека',
+      'order.create': 'allowed', 'order.split': 'allowed',
       // Опасные действия — PIN менеджера (урок Poster security-settings)
-      'order.item.remove': 'Удаление позиции после кухни', 'order.cancel': 'Удаление позиции до кухни',
-      'order.discount.manual': 'Скидка на чек', 'order.reopen': 'Перенос заказа на другой стол',
-      'order.refund': 'Возврат по чеку',
-      'crm.customer.view': 'База гостей',
+      'order.item.remove': 'elevated_pin', 'order.cancel': 'allowed',
+      'order.discount.manual': 'elevated_pin', 'order.reopen': 'elevated_pin',
+      'order.refund': 'elevated_pin',
+      'crm.customer.view': 'allowed',
     },
   },
   WAITER: {
     name: 'Официант',
     permissions: {
-      'order.create': 'Создание заказа', 'order.split': 'Печать копии чека',
-      'order.item.remove': 'Удаление позиции после кухни', 'order.cancel': 'Удаление позиции до кухни',
-      'order.discount.manual': 'Скидка на чек', 'order.refund': 'Возврат по чеку',
-      'crm.customer.view': 'База гостей',
+      'order.create': 'allowed', 'order.split': 'allowed',
+      'order.item.remove': 'elevated_pin', 'order.cancel': 'allowed',
+      'order.discount.manual': 'elevated_pin', 'order.refund': 'elevated_pin',
+      'crm.customer.view': 'allowed',
     },
   },
   COOK: { name: 'Повар', permissions: {} }, // видит только кухонный экран
-  COURIER: { name: 'Курьер', permissions: { 'order.create': 'Создание заказа' } },
+  COURIER: { name: 'Курьер', permissions: { 'order.create': 'allowed' } },
 };
 
 // ── Договор синхронизации (офлайн-ядро) ─────────────────────────

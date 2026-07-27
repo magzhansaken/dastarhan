@@ -7,7 +7,7 @@
 import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { PermissionsGuard, RequirePermission } from '../auth/permissions.guard';
-import { reduceOrder, orderTotals, OrderState, OrderEvent } from '@dastarhan/pos-core';
+import { reduceOrder, orderTotals, OrderState, OrderEvent } from '../../../pos/src/offline/orderReducer';
 import {
   validateNewPayment, canCloseOrder, validateFiscalRequest, Pay,
 } from '../payments/payments.logic';

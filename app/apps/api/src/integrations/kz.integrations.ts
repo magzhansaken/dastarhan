@@ -3,7 +3,7 @@
 // (kaspiqr: API AUTHKEY; wolt: Venue ID + API key + вебхук; rekassa) и
 // открытых API. Всё как чистые функции + драйверы с injected fetch.
 
-import { FiscalDriver, FiscalRequest, FiscalResult } from '../payments.logic';
+import { FiscalDriver, FiscalRequest, FiscalResult } from '../payments/payments.logic';
 
 export type Money = number;
 
@@ -81,7 +81,7 @@ export class ReKassaDriver implements FiscalDriver {
       );
       if (r.status === 401) return { success: false, errorCode: 'AUTH', retriable: true };
       if (!r.ok) return { success: false, errorCode: `HTTP_${r.status}`, retriable: r.status >= 500 };
-      const data = await r.json();
+      const data = await r.json() as any;
       return { success: true, fiscalNumber: data?.id, ofdUrl: data?.ticketUrl };
     } catch (e: any) {
       return { success: false, errorCode: 'NETWORK', errorText: e?.message, retriable: true };
