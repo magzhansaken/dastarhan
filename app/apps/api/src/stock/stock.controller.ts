@@ -152,7 +152,11 @@ export class StockController {
    */
   @Post('docs/:id/post')
   @RequirePermission('stock.supply')
-  async postDoc(@Param('id') id: string, @Req() req: any) {
+  async postDoc(
+    @Param('id') id: string,
+    @Req() req: any,
+    @Query('force') force?: string,
+  ) {
     const doc = await this.prisma.stockDoc.findFirst({
       where: { id, accountId: req.user.acc },
       include: { lines: true },
@@ -165,6 +169,48 @@ export class StockController {
     // Знак движения зависит от типа: приход добавляет, списание убирает
     const sign = doc.type === 'SUPPLY' || doc.type === 'SURPLUS' || doc.type === 'PRODUCTION'
       ? 1 : -1;
+
+    // Проверка правдоподобности до проведения. Кладовщик вбил 20 000
+    // вместо 20 — система примет двадцать тонн риса и промолчит,
+    // а вскроется это через месяц на инвентаризации, когда искать поздно.
+    // Ни один из конкурентов такой проверки не делает.
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: doc.lines.map((l) => l.productId) } },
+      select: { id: true, name: true, unit: true },
+    });
+    const byId = new Map(products.map((p) => [p.id, p]));
+
+    const warnings: { product: string; qty: number; unit: string; reason: string }[] = [];
+    for (const line of doc.lines) {
+      const p = byId.get(line.productId);
+      const qty = Number(line.qty);
+      const unit = p?.unit ?? 'PCS';
+
+      // Пороги по здравому смыслу заведения: тонна муки бывает,
+      // но её везут не каждый день, поэтому просим подтверждение
+      const limit = unit === 'KG' ? 1000 : unit === 'L' ? 1000 : 10000;
+      if (qty > limit) {
+        warnings.push({
+          product: p?.name ?? line.productId, qty, unit,
+          reason: `Похоже на ошибку единиц: ${qty} ${unit} — проверьте, не граммы ли это`,
+        });
+      }
+      if ((line.unitCost ?? 0) === 0 && sign > 0) {
+        warnings.push({
+          product: p?.name ?? line.productId, qty, unit,
+          reason: 'Цена не указана — себестоимость блюд посчитается неверно',
+        });
+      }
+    }
+
+    // Подтверждение обходит проверку: бывают и настоящие тонны
+    if (warnings.length && !force) {
+      throw new BadRequestException({
+        code: 'NEEDS_CONFIRMATION',
+        warnings,
+        hint: 'Повторите с параметром force=true, если данные верны',
+      });
+    }
 
     await this.prisma.$transaction(async (tx) => {
       for (const line of doc.lines) {
