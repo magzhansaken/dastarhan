@@ -64,30 +64,99 @@
 
     <div class="calc-box">
       <div class="calc-field">
-        <label>Телефон</label>
-        <input type="tel" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="+7 707 000 00 00" inputmode="tel">
-      </div>
-      <div class="calc-field">
         <label>Название заведения</label>
-        <input type="text" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="Кафе Дастархан">
+        <input type="text" id="su-company" class="g-search" placeholder="Чайхана Алтын">
       </div>
       <div class="calc-field">
-        <label>БИН или ИИН</label>
-        <input type="text" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="000000000000" inputmode="numeric">
+        <label>Ваше имя</label>
+        <input type="text" id="su-name" class="g-search" placeholder="Асхат">
       </div>
       <div class="calc-field">
-        <label>Тип бизнеса</label>
-        <div class="plans">
-          <div class="plan on"><div><div class="plan-name">Кафе или ресторан</div></div></div>
-          <div class="plan"><div><div class="plan-name">Фастфуд, столовая</div></div></div>
-          <div class="plan"><div><div class="plan-name">Магазин</div></div></div>
-          <div class="plan"><div><div class="plan-name">Бильярд, караоке</div></div></div>
-          <div class="plan"><div><div class="plan-name">Салон красоты</div></div></div>
-        </div>
+        <label>Тип заведения</label>
+        <select id="su-vertical" class="g-search">
+          <option value="CAFE">Кафе или ресторан</option>
+          <option value="FASTFOOD">Фастфуд, столовая</option>
+          <option value="SHOP">Магазин</option>
+          <option value="BILLIARD">Бильярд, караоке</option>
+          <option value="SALON">Салон красоты</option>
+        </select>
       </div>
-      <a class="btn btn-primary btn-lg btn-block" href="#">Создать и настроить</a>
-      <p class="total-note">Нажимая кнопку, вы соглашаетесь с условиями использования. Пробный период — 14 дней, карта не нужна.</p>
+      <div class="calc-field">
+        <label>Почта</label>
+        <input type="email" id="su-email" class="g-search" placeholder="you@example.kz" autocomplete="username">
+      </div>
+      <div class="calc-field">
+        <label>Пароль</label>
+        <input type="password" id="su-pass" class="g-search" placeholder="от 6 символов" autocomplete="new-password">
+      </div>
+      <div class="calc-field">
+        <label>Телефон</label>
+        <input type="tel" id="su-phone" class="g-search" placeholder="+7 707 000 00 00" inputmode="tel">
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-block" id="su-btn" onclick="doSignup()">Создать аккаунт</button>
+      <p class="total-note" id="su-note">Карту не спрашиваем. 14 дней полного доступа.</p>
     </div>
+
+    <div class="calc-box" id="su-done" style="display:none;margin-top:18px;background:var(--ok-soft)">
+      <h3 style="color:var(--ok-deep)">Готово — аккаунт создан</h3>
+      <p class="lead" style="margin:10px 0">Код активации кассы:</p>
+      <div id="su-code" style="font-size:28px;font-weight:700;letter-spacing:2px;color:var(--ok-deep)"></div>
+      <p class="total-note" style="margin-top:14px">Сохраните код — он понадобится при установке программы на кассу.</p>
+      <a class="btn btn-primary btn-lg btn-block" href="/office/" style="margin-top:14px">Войти в бэк-офис</a>
+    </div>
+
+<script>
+async function doSignup() {
+  var btn = document.getElementById('su-btn');
+  var note = document.getElementById('su-note');
+  var company = document.getElementById('su-company').value.trim();
+  var email = document.getElementById('su-email').value.trim();
+  var pass = document.getElementById('su-pass').value;
+
+  if (!company || !email || pass.length < 6) {
+    note.textContent = 'Заполните название, почту и пароль от 6 символов';
+    note.style.color = '#d43f44';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Создаём…';
+
+  try {
+    var r = await fetch('/api/v1/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyName: company,
+        ownerName: document.getElementById('su-name').value.trim() || undefined,
+        email: email,
+        password: pass,
+        phone: document.getElementById('su-phone').value.trim() || undefined,
+        vertical: document.getElementById('su-vertical').value,
+      }),
+    });
+    var d = await r.json();
+
+    if (!r.ok) {
+      note.textContent = d.message || 'Не получилось. Проверьте данные.';
+      note.style.color = '#d43f44';
+      btn.disabled = false;
+      btn.textContent = 'Создать аккаунт';
+      return;
+    }
+
+    document.querySelector('.calc-box').style.display = 'none';
+    document.getElementById('su-code').textContent = d.activationCode;
+    document.getElementById('su-done').style.display = 'block';
+  } catch (e) {
+    note.textContent = 'Нет связи с сервером. Попробуйте ещё раз.';
+    note.style.color = '#d43f44';
+    btn.disabled = false;
+    btn.textContent = 'Создать аккаунт';
+  }
+}
+</script>
   </div>
 </section>
 

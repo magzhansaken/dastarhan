@@ -128,30 +128,99 @@
 
     <div class="calc-box">
       <div class="calc-field">
-        <label>⟦Телефон|Телефон⟧</label>
-        <input type="tel" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="+7 707 000 00 00" inputmode="tel">
-      </div>
-      <div class="calc-field">
         <label>⟦Название заведения|Мекеме атауы⟧</label>
-        <input type="text" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="⟦Кафе Дастархан|Дастархан кафесі⟧">
+        <input type="text" id="su-company" class="g-search" placeholder="⟦Чайхана Алтын|Алтын шайханасы⟧">
       </div>
       <div class="calc-field">
-        <label>⟦БИН или ИИН|БСН немесе ЖСН⟧</label>
-        <input type="text" class="btn btn-block" style="justify-content:flex-start;height:56px" placeholder="000000000000" inputmode="numeric">
+        <label>⟦Ваше имя|Атыңыз⟧</label>
+        <input type="text" id="su-name" class="g-search" placeholder="⟦Асхат|Асхат⟧">
       </div>
       <div class="calc-field">
-        <label>⟦Тип бизнеса|Бизнес түрі⟧</label>
-        <div class="plans">
-          <div class="plan on"><div><div class="plan-name">⟦Кафе или ресторан|Кафе немесе мейрамхана⟧</div></div></div>
-          <div class="plan"><div><div class="plan-name">⟦Фастфуд, столовая|Фастфуд, асхана⟧</div></div></div>
-          <div class="plan"><div><div class="plan-name">⟦Магазин|Дүкен⟧</div></div></div>
-          <div class="plan"><div><div class="plan-name">⟦Бильярд, караоке|Бильярд, караоке⟧</div></div></div>
-          <div class="plan"><div><div class="plan-name">⟦Салон красоты|Сұлулық салоны⟧</div></div></div>
-        </div>
+        <label>⟦Тип заведения|Мекеме түрі⟧</label>
+        <select id="su-vertical" class="g-search">
+          <option value="CAFE">⟦Кафе или ресторан|Кафе немесе мейрамхана⟧</option>
+          <option value="FASTFOOD">⟦Фастфуд, столовая|Фастфуд, асхана⟧</option>
+          <option value="SHOP">⟦Магазин|Дүкен⟧</option>
+          <option value="BILLIARD">⟦Бильярд, караоке|Бильярд, караоке⟧</option>
+          <option value="SALON">⟦Салон красоты|Сұлулық салоны⟧</option>
+        </select>
       </div>
-      <a class="btn btn-primary btn-lg btn-block" href="#">⟦Создать и настроить|Жасау және баптау⟧</a>
-      <p class="total-note">⟦Нажимая кнопку, вы соглашаетесь с условиями использования. Пробный период — 14 дней, карта не нужна.|Түймені басу арқылы пайдалану шарттарымен келісесіз.⟧</p>
+      <div class="calc-field">
+        <label>⟦Почта|Пошта⟧</label>
+        <input type="email" id="su-email" class="g-search" placeholder="you@example.kz" autocomplete="username">
+      </div>
+      <div class="calc-field">
+        <label>⟦Пароль|Құпия сөз⟧</label>
+        <input type="password" id="su-pass" class="g-search" placeholder="⟦от 6 символов|6 таңбадан⟧" autocomplete="new-password">
+      </div>
+      <div class="calc-field">
+        <label>⟦Телефон|Телефон⟧</label>
+        <input type="tel" id="su-phone" class="g-search" placeholder="+7 707 000 00 00" inputmode="tel">
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-block" id="su-btn" onclick="doSignup()">⟦Создать аккаунт|Аккаунт жасау⟧</button>
+      <p class="total-note" id="su-note">⟦Карту не спрашиваем. 14 дней полного доступа.|Картаны сұрамаймыз. 14 күн толық қолжетімділік.⟧</p>
     </div>
+
+    <div class="calc-box" id="su-done" style="display:none;margin-top:18px;background:var(--ok-soft)">
+      <h3 style="color:var(--ok-deep)">⟦Готово — аккаунт создан|Дайын — аккаунт жасалды⟧</h3>
+      <p class="lead" style="margin:10px 0">⟦Код активации кассы|Кассаны белсендіру коды⟧:</p>
+      <div id="su-code" style="font-size:28px;font-weight:700;letter-spacing:2px;color:var(--ok-deep)"></div>
+      <p class="total-note" style="margin-top:14px">⟦Сохраните код — он понадобится при установке программы на кассу.|Кодты сақтаңыз — кассаға бағдарлама орнатқанда қажет болады.⟧</p>
+      <a class="btn btn-primary btn-lg btn-block" href="/office/" style="margin-top:14px">⟦Войти в бэк-офис|Бэк-офиске кіру⟧</a>
+    </div>
+
+<script>
+async function doSignup() {
+  var btn = document.getElementById('su-btn');
+  var note = document.getElementById('su-note');
+  var company = document.getElementById('su-company').value.trim();
+  var email = document.getElementById('su-email').value.trim();
+  var pass = document.getElementById('su-pass').value;
+
+  if (!company || !email || pass.length < 6) {
+    note.textContent = '⟦Заполните название, почту и пароль от 6 символов|Атауын, поштаны және 6 таңбадан құпия сөзді толтырыңыз⟧';
+    note.style.color = '#d43f44';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⟦Создаём…|Жасалуда…⟧';
+
+  try {
+    var r = await fetch('/api/v1/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companyName: company,
+        ownerName: document.getElementById('su-name').value.trim() || undefined,
+        email: email,
+        password: pass,
+        phone: document.getElementById('su-phone').value.trim() || undefined,
+        vertical: document.getElementById('su-vertical').value,
+      }),
+    });
+    var d = await r.json();
+
+    if (!r.ok) {
+      note.textContent = d.message || '⟦Не получилось. Проверьте данные.|Болмады. Деректерді тексеріңіз.⟧';
+      note.style.color = '#d43f44';
+      btn.disabled = false;
+      btn.textContent = '⟦Создать аккаунт|Аккаунт жасау⟧';
+      return;
+    }
+
+    document.querySelector('.calc-box').style.display = 'none';
+    document.getElementById('su-code').textContent = d.activationCode;
+    document.getElementById('su-done').style.display = 'block';
+  } catch (e) {
+    note.textContent = '⟦Нет связи с сервером. Попробуйте ещё раз.|Сервермен байланыс жоқ.⟧';
+    note.style.color = '#d43f44';
+    btn.disabled = false;
+    btn.textContent = '⟦Создать аккаунт|Аккаунт жасау⟧';
+  }
+}
+</script>
   </div>
 </section>
 </v-register>
