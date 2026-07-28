@@ -58,8 +58,14 @@ export class FinanceController {
     const tax = Math.round(revenue * 0.03);
     const net = revenue - expenses - tax;
 
+    // Подсказки к цифрам: владелец пришёл не смотреть таблицу,
+    // а понять, что делать. Голая маржа этого не говорит.
+    const insights = await this.buildInsights(accountId, fromDate, toDate);
+
     return {
       period: { from: fromDate, to: toDate },
+      periodLabel: `${fromDate.toLocaleDateString('ru-RU')} — ${toDate.toLocaleDateString('ru-RU')} · ИП на упрощёнке, налог 3% с оборота`,
+      insights,
       revenue,
       expenses,
       byCategory: [...byCategory.entries()]
@@ -70,6 +76,74 @@ export class FinanceController {
       net,
       marginPct: revenue > 0 ? +((100 * net) / revenue).toFixed(1) : 0,
     };
+  }
+
+  /**
+   * Подсказки: что именно повлияло на прибыль.
+   * Две самые полезные — подорожавшее сырьё и блюда-кормильцы.
+   */
+  private async buildInsights(accountId: string, from: Date, to: Date) {
+    const out: { kind: 'warn' | 'good'; text: string }[] = [];
+
+    // Рост закупочной цены: владелец узнаёт об этом из накладных
+    // через месяц, а надо — сразу, пока можно поднять цену блюда
+    const moves = await this.prisma.stockMovement.findMany({
+      where: { accountId, qtyDelta: { gt: 0 }, at: { gte: from, lte: to } },
+      select: { productId: true, unitCost: true, at: true },
+      orderBy: { at: 'asc' },
+    });
+
+    const byProduct = new Map<string, { first: number; last: number; at: Date }>();
+    for (const m of moves) {
+      const cur = byProduct.get(m.productId);
+      if (!cur) byProduct.set(m.productId, { first: m.unitCost, last: m.unitCost, at: m.at });
+      else { cur.last = m.unitCost; cur.at = m.at; }
+    }
+
+    for (const [productId, v] of byProduct) {
+      if (v.first <= 0) continue;
+      const growth = Math.round(((v.last - v.first) / v.first) * 100);
+      if (growth >= 10) {
+        const p = await this.prisma.product.findUnique({
+          where: { id: productId }, select: { name: true },
+        });
+        out.push({
+          kind: 'warn',
+          text: `${p?.name ?? 'Товар'} подорожал на ${growth}% с ${v.at.toLocaleDateString('ru-RU')} — себестоимость блюд выросла`,
+        });
+      }
+    }
+
+    // Блюда-кормильцы: держать в наличии всегда, кончились —
+    // выручка падает сразу, а не постепенно
+    const orders = await this.prisma.order.findMany({
+      where: { accountId, status: 'CLOSED', closedAt: { gte: from, lte: to } },
+      include: { items: { where: { isRemoved: false } } },
+    });
+
+    const dishRevenue = new Map<string, { name: string; sum: number }>();
+    let total = 0;
+    for (const o of orders) {
+      for (const i of o.items) {
+        const sum = Number(i.qty) * i.unitPrice;
+        total += sum;
+        const cur = dishRevenue.get(i.productId);
+        dishRevenue.set(i.productId, { name: i.nameSnapshot, sum: (cur?.sum ?? 0) + sum });
+      }
+    }
+
+    if (total > 0) {
+      const top = [...dishRevenue.values()].sort((a, b) => b.sum - a.sum).slice(0, 2);
+      const share = Math.round((top.reduce((s, x) => s + x.sum, 0) / total) * 100);
+      if (top.length === 2 && share >= 30) {
+        out.push({
+          kind: 'good',
+          text: `${top[0].name} и ${top[1].name.toLowerCase()} дали ${share}% выручки — держите их в наличии всегда`,
+        });
+      }
+    }
+
+    return out.slice(0, 3);
   }
 
   /** Движение денег: пришло, ушло, остаток по счетам. */
