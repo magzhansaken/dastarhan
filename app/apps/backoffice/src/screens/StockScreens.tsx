@@ -303,3 +303,57 @@ export function InventoryScreen(props: {
     </div>
   );
 }
+
+// ═══════════════ ПРИЁМ ПОСТАВКИ: ТЕКСТЫ ═══════════════
+// Кладовщик принимает товар у машины, с накладной в руках.
+// Экран должен работать так же быстро, как он считает коробки.
+
+export const SUPPLY_COPY = {
+  docHeader: (num: string, date: string) =>
+    `Накладная № ${num} от ${date} · черновик сохраняется сам`,
+  // Фото накладной вместо ручного ввода: ИИ распознаёт позиции,
+  // кладовщик проверяет и правит — это минуты вместо получаса
+  photo: 'Сфотографировать накладную',
+  post: 'Провести поставку',
+
+  supplierLine: (name: string, kind: string) => `${name} · ${kind}`,
+  warehouse: 'Кухня · основной',
+  receiver: (name: string) => `принимает ${name}`,
+
+  // Отсрочка платежа видна прямо в накладной: владелец должен
+  // помнить, когда платить, не открывая финансы
+  deferral: (days: number, until: string) => `Отсрочка ${days} дней · до ${until}`,
+  total: 'Сумма накладной',
+  callSupplier: 'Позвонить поставщику',
+
+  colPrice: 'Цена за ед.',
+  // Остаток после проведения показываем сразу: кладовщик видит,
+  // хватит ли товара, и не бежит потом смотреть в другой раздел
+  colRest: 'Остаток после',
+  removeLine: 'Убрать строку',
+  addItem: 'Добавить товар',
+  // Поставки повторяются: тот же поставщик, те же позиции.
+  // Копия прошлой накладной экономит пять минут каждый раз
+  repeatLast: 'Повторить прошлую поставку',
+  docTotal: 'Итого по накладной',
+
+  // Что изменится: остатки, себестоимость, фудкост блюд.
+  // Показываем ДО проведения — после будет поздно
+  preview: 'Что изменится после проведения',
+
+  priceHistory: (product: string) => `История цен · ${product}`,
+  priceTrend: (from: string, to: string, pct: number, note: string) =>
+    `${from} — ${to}. Рост ${pct}% за месяц, ${note}.`,
+} as const;
+
+/** Остаток после проведения строки накладной. */
+export function restAfter(current: number, incoming: number): number {
+  return Number((current + incoming).toFixed(3));
+}
+
+/** Дата окончания отсрочки платежа. */
+export function deferralUntil(from: Date, days: number): Date {
+  const d = new Date(from);
+  d.setDate(d.getDate() + days);
+  return d;
+}
