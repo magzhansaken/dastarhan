@@ -30,7 +30,7 @@ export class GuestController {
 
     const [categories, products, stops, prices] = await Promise.all([
       this.prisma.menuCategory.findMany({
-        where: { isDeleted: false, accountId: table.location.accountId },
+        where: { isDeleted: false, accountId: location.accountId },
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.product.findMany({
