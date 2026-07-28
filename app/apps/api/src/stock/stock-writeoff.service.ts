@@ -47,11 +47,14 @@ export class StockWriteoffService {
 
     const techCards = new Map(
       cards.map((c) => [c.productId, {
+        productId: c.productId,
+        version: c.version,
         outputQty: Number(c.outputQty),
+        // Списываем по БРУТТО: это то, что реально уходит со склада,
+        // включая потери при чистке. Нетто нужно для расчёта себестоимости
         lines: c.lines.map((l) => ({
           componentId: l.componentId,
           bruttoQty: Number(l.bruttoQty),
-          nettoQty: Number(l.nettoQty),
         })),
       }]),
     );
