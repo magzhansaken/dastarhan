@@ -40,7 +40,7 @@ export class StaffController {
 
   /** Список сотрудников с ролями и активностью. */
   @Get()
-  @RequirePermission('staff.view')
+  @RequirePermission('admin.employees')
   async list(@Req() req: any) {
     const users = await this.prisma.user.findMany({
       where: { accountId: req.user.acc },
@@ -84,7 +84,7 @@ export class StaffController {
 
   /** Добавить сотрудника с PIN и ролью на точке. */
   @Post()
-  @RequirePermission('staff.edit')
+  @RequirePermission('admin.employees')
   async create(@Body() dto: CreateStaffDto, @Req() req: any) {
     // PIN не должен повторяться на точке: иначе двое войдут
     // под одним кодом, и разбор смены станет невозможен
@@ -120,7 +120,7 @@ export class StaffController {
 
   /** Сброс PIN: кассир забыл, владелец выдаёт новый. */
   @Patch(':id/pin')
-  @RequirePermission('staff.edit')
+  @RequirePermission('admin.employees')
   async resetPin(@Param('id') id: string, @Body() body: { pin: string }) {
     if (!/^\d{4}$/.test(body.pin)) {
       throw new BadRequestException({ code: 'BAD_PIN', message: 'PIN — четыре цифры' });
@@ -136,7 +136,7 @@ export class StaffController {
    * в отчётах, и по ним потом разбирают спорные ситуации.
    */
   @Patch(':id/block')
-  @RequirePermission('staff.edit')
+  @RequirePermission('admin.employees')
   async block(@Param('id') id: string) {
     const u = await this.prisma.user.findUnique({ where: { id } });
     if (!u) throw new NotFoundException({ code: 'USER_NOT_FOUND' });
@@ -154,7 +154,7 @@ export class StaffController {
 
   /** Роли аккаунта с их правами. */
   @Get('roles')
-  @RequirePermission('staff.view')
+  @RequirePermission('admin.employees')
   async roles(@Req() req: any) {
     const roles = await this.prisma.role.findMany({
       where: { accountId: req.user.acc },
@@ -168,7 +168,7 @@ export class StaffController {
 
   /** Справочник всех прав с описаниями — для экрана настройки. */
   @Get('permissions')
-  @RequirePermission('staff.view')
+  @RequirePermission('admin.employees')
   catalog() {
     return {
       permissions: PERMISSIONS,
@@ -188,7 +188,7 @@ export class StaffController {
 
   /** Изменение прав роли. */
   @Patch('roles/:id')
-  @RequirePermission('staff.edit')
+  @RequirePermission('admin.employees')
   async updateRole(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     await this.prisma.role.update({
       where: { id },
@@ -199,7 +199,7 @@ export class StaffController {
 
   /** Возврат роли к пресету: владелец запутался в правах и хочет откатить. */
   @Post('roles/:id/reset')
-  @RequirePermission('staff.edit')
+  @RequirePermission('admin.employees')
   async resetRole(@Param('id') id: string) {
     const role = await this.prisma.role.findUnique({ where: { id } });
     if (!role?.preset) throw new BadRequestException({ code: 'NO_PRESET' });
