@@ -9,7 +9,7 @@ import {
   Body, Controller, Get, Post, Query, UseGuards, Req, Param,
   BadRequestException, NotFoundException,
 } from '@nestjs/common';
-import { IsArray, IsIn, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsNumber, IsOptional, IsString, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PrismaService } from '../core/prisma.service';
 import { JwtGuard } from '../auth/jwt.guard';
@@ -17,8 +17,17 @@ import { PermissionsGuard, RequirePermission } from '../auth/permissions.guard';
 
 class DocLineDto {
   @IsString() productId!: string;
+
+  // Декораторы обязательны: ValidationPipe с forbidNonWhitelisted
+  // вырезает поля без них как посторонние, и число просто не доедет
+  @IsNumber({}, { message: 'Количество должно быть числом' })
+  @Min(0.001, { message: 'Количество должно быть больше нуля' })
   qty!: number;
-  @IsOptional() unitCost?: number;
+
+  @IsOptional()
+  @IsNumber({}, { message: 'Цена должна быть числом' })
+  @Min(0, { message: 'Цена не может быть отрицательной' })
+  unitCost?: number;
 }
 
 class CreateDocDto {
