@@ -8,6 +8,7 @@ import { AuthController } from './auth/auth.controller';
 import { PermissionsGuard } from './auth/permissions.guard';
 import { JwtGuard } from './auth/jwt.guard';
 import { PrismaService } from './core/prisma.service';
+import { OrderMaterializer } from './core/order-materializer';
 import { HealthController } from './core/health.controller';
 import { SyncController } from './core/sync.controller';
 import { ReportsController } from './reports/reports.controller';
@@ -33,6 +34,6 @@ import { VerticalsController } from './verticals/verticals.controller';
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
     PlatformController, TerminalsController, DeliveryController, VerticalsController],
-  providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService],
+  providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer],
 })
 export class AppModule {}
