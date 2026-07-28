@@ -145,4 +145,267 @@ export class ExportController {
       onec: 'Автоматической синхронизации с 1С пока нет — выгрузка файлом',
     };
   }
+
+  /**
+   * Книга продаж помесячно — то, что бухгалтер сдаёт в налоговую.
+   *
+   * У конкурентов выгрузка сырых чеков, и бухгалтер сводит их сам.
+   * Мы даём готовые итоги по дням с разбивкой по способам оплаты
+   * и налогу: остаётся перенести цифры в декларацию.
+   */
+  @Get('sales-book')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="sales-book.csv"')
+  @RequirePermission('finance.view')
+  async salesBook(@Req() req: any, @Query('month') month?: string) {
+    const base = month ? new Date(month + '-01') : new Date();
+    const from = new Date(base.getFullYear(), base.getMonth(), 1);
+    const to = new Date(from);
+    to.setMonth(to.getMonth() + 1);
+
+    const account = await this.prisma.account.findUnique({
+      where: { id: req.user.acc },
+      select: { name: true, taxMode: true, turnoverTaxRate: true, vatRate: true },
+    });
+
+    const orders = await this.prisma.order.findMany({
+      where: { accountId: req.user.acc, status: 'CLOSED', closedAt: { gte: from, lt: to } },
+      include: { payments: true },
+      orderBy: { closedAt: 'asc' },
+    });
+
+    const refunds = await this.prisma.refund.findMany({
+      where: { accountId: req.user.acc, createdAt: { gte: from, lt: to } },
+      select: { amount: true, createdAt: true },
+    }).catch(() => [] as any[]);
+
+    // Группируем по дням: налоговая смотрит дневные итоги,
+    // а не каждый чек
+    const byDay = new Map<string, {
+      revenue: number; checks: number;
+      cash: number; card: number; qr: number; refund: number;
+    }>();
+
+    for (const o of orders) {
+      const key = o.closedAt!.toISOString().slice(0, 10);
+      const cur = byDay.get(key) ?? {
+        revenue: 0, checks: 0, cash: 0, card: 0, qr: 0, refund: 0,
+      };
+      cur.revenue += o.total;
+      cur.checks++;
+      for (const p of o.payments) {
+        if (p.status !== 'CAPTURED') continue;
+        if (p.kind === 'CASH') cur.cash += p.amount;
+        else if (p.kind === 'CARD') cur.card += p.amount;
+        else cur.qr += p.amount;
+      }
+      byDay.set(key, cur);
+    }
+
+    for (const r of refunds as any[]) {
+      const key = r.createdAt.toISOString().slice(0, 10);
+      const cur = byDay.get(key);
+      if (cur) cur.refund += r.amount;
+    }
+
+    const taxRate = Number(account?.turnoverTaxRate ?? 3);
+    const isVat = account?.taxMode === 'VAT';
+
+    const rows = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const money = (v: number) => (v / 100).toFixed(2);
+
+    const lines = [
+      `Книга продаж;${account?.name ?? ''};${from.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}`,
+      '',
+      isVat
+        ? `Дата;Чеков;Выручка;Возвраты;Итого;Наличные;Карта;QR;НДС ${account?.vatRate ?? 16}%`
+        : `Дата;Чеков;Выручка;Возвраты;Итого;Наличные;Карта;QR;Налог ${taxRate}%`,
+    ];
+
+    let totalRevenue = 0, totalRefund = 0;
+    for (const [day, v] of rows) {
+      const net = v.revenue - v.refund;
+      totalRevenue += v.revenue;
+      totalRefund += v.refund;
+      // НДС считается «в том числе» — так принято в чеках РК
+      const tax = isVat
+        ? Math.round(net * (account?.vatRate ?? 16) / (100 + (account?.vatRate ?? 16)))
+        : Math.round(net * taxRate / 100);
+
+      lines.push([
+        new Date(day).toLocaleDateString('ru-RU'),
+        v.checks,
+        money(v.revenue),
+        money(v.refund),
+        money(net),
+        money(v.cash),
+        money(v.card),
+        money(v.qr),
+        money(tax),
+      ].join(';'));
+    }
+
+    const net = totalRevenue - totalRefund;
+    const totalTax = isVat
+      ? Math.round(net * (account?.vatRate ?? 16) / (100 + (account?.vatRate ?? 16)))
+      : Math.round(net * taxRate / 100);
+
+    lines.push('');
+    lines.push(`ИТОГО;${orders.length};${money(totalRevenue)};${money(totalRefund)};${money(net)};;;;${money(totalTax)}`);
+
+    return '\uFEFF' + lines.join('\r\n');
+  }
+
+  /**
+   * Оборотно-сальдовая по складу: что было, пришло, ушло, осталось.
+   * Бухгалтер сверяет её с актом инвентаризации.
+   */
+  @Get('stock-turnover.csv')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header('Content-Disposition', 'attachment; filename="stock-turnover.csv"')
+  @RequirePermission('finance.view')
+  async stockTurnover(
+    @Req() req: any,
+    @Query('from') fromStr?: string,
+    @Query('to') toStr?: string,
+  ) {
+    const to = toStr ? new Date(toStr) : new Date();
+    const from = fromStr ? new Date(fromStr) : new Date(to.getFullYear(), to.getMonth(), 1);
+
+    const moves = await this.prisma.stockMovement.findMany({
+      where: { accountId: req.user.acc, at: { gte: from, lte: to } },
+      select: { productId: true, qtyDelta: true, unitCost: true, at: true },
+    });
+
+    // Остаток на начало восстанавливаем обратным ходом от текущего:
+    // отдельной таблицы истории нет, а цифра бухгалтеру нужна
+    const balances = await this.prisma.stockBalance.findMany({
+      where: { product: { accountId: req.user.acc } },
+      select: { productId: true, qty: true, avgCost: true },
+    });
+    const nowBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
+
+    const after = await this.prisma.stockMovement.findMany({
+      where: { accountId: req.user.acc, at: { gt: to } },
+      select: { productId: true, qtyDelta: true },
+    });
+    const afterBy = new Map<string, number>();
+    for (const m of after) {
+      afterBy.set(m.productId, (afterBy.get(m.productId) ?? 0) + Number(m.qtyDelta));
+    }
+
+    const inBy = new Map<string, number>();
+    const outBy = new Map<string, number>();
+    for (const m of moves) {
+      const q = Number(m.qtyDelta);
+      if (q > 0) inBy.set(m.productId, (inBy.get(m.productId) ?? 0) + q);
+      else outBy.set(m.productId, (outBy.get(m.productId) ?? 0) + Math.abs(q));
+    }
+
+    const ids = [...new Set([...inBy.keys(), ...outBy.keys()])];
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, name: true, unit: true, sku: true },
+    });
+    const byId = new Map(products.map((p) => [p.id, p]));
+    const costBy = new Map(balances.map((b) => [b.productId, b.avgCost]));
+
+    const lines = [
+      'Артикул;Товар;Ед;Остаток на начало;Приход;Расход;Остаток на конец;Себестоимость;Сумма',
+    ];
+
+    for (const id of ids) {
+      const p = byId.get(id);
+      const inQty = inBy.get(id) ?? 0;
+      const outQty = outBy.get(id) ?? 0;
+      const now = nowBy.get(id) ?? 0;
+      const afterDelta = afterBy.get(id) ?? 0;
+      const end = now - afterDelta;
+      const start = end - inQty + outQty;
+      const cost = costBy.get(id) ?? 0;
+
+      lines.push([
+        p?.sku ?? '',
+        `"${(p?.name ?? '—').replace(/"/g, '""')}"`,
+        p?.unit ?? '',
+        start.toFixed(3),
+        inQty.toFixed(3),
+        outQty.toFixed(3),
+        end.toFixed(3),
+        (cost / 100).toFixed(2),
+        ((end * cost) / 100).toFixed(2),
+      ].join(';'));
+    }
+
+    return '\uFEFF' + lines.join('\r\n');
+  }
+
+  /**
+   * Сводка для бухгалтера: что сдавать и когда.
+   * Даты налоговых сроков Казахстана — чтобы не пропустить.
+   */
+  @Get('accountant-summary')
+  @RequirePermission('finance.view')
+  async accountantSummary(@Req() req: any) {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+
+    const account = await this.prisma.account.findUnique({
+      where: { id: req.user.acc },
+      select: { taxMode: true, turnoverTaxRate: true },
+    });
+
+    const [cur, prev] = await Promise.all([
+      this.prisma.order.aggregate({
+        where: { accountId: req.user.acc, status: 'CLOSED', closedAt: { gte: monthStart } },
+        _sum: { total: true }, _count: true,
+      }),
+      this.prisma.order.aggregate({
+        where: {
+          accountId: req.user.acc, status: 'CLOSED',
+          closedAt: { gte: prevStart, lt: monthStart },
+        },
+        _sum: { total: true },
+      }),
+    ]);
+
+    const revenue = cur._sum.total ?? 0;
+    const prevRevenue = prev._sum.total ?? 0;
+    const rate = Number(account?.turnoverTaxRate ?? 3);
+
+    // Квартальные сроки: упрощёнка сдаёт форму 910 раз в полгода,
+    // но налог платит ежеквартально
+    const quarter = Math.floor(now.getMonth() / 3) + 1;
+    const nextQuarterEnd = new Date(now.getFullYear(), quarter * 3, 0);
+    const payBy = new Date(nextQuarterEnd);
+    payBy.setDate(payBy.getDate() + 25);
+
+    return {
+      taxMode: account?.taxMode ?? 'SIMPLIFIED',
+      currentMonth: {
+        revenue,
+        checks: cur._count,
+        estimatedTax: Math.round(revenue * rate / 100),
+      },
+      previousMonth: {
+        revenue: prevRevenue,
+        estimatedTax: Math.round(prevRevenue * rate / 100),
+      },
+      quarter,
+      quarterEnds: nextQuarterEnd,
+      payTaxBy: payBy,
+      daysToPay: Math.ceil((payBy.getTime() - now.getTime()) / 86400_000),
+      files: [
+        { key: 'sales-book', label: 'Книга продаж', path: '/export/sales-book' },
+        { key: 'turnover', label: 'Оборотно-сальдовая по складу', path: '/export/stock-turnover.csv' },
+        { key: 'cashflow', label: 'Движение денег', path: '/export/cashflow.csv' },
+      ],
+      // Напоминание за неделю: штраф за просрочку больше,
+      // чем сумма налога у маленького кафе
+      reminder: Math.ceil((payBy.getTime() - now.getTime()) / 86400_000) <= 7
+        ? `Налог за квартал платить до ${payBy.toLocaleDateString('ru-RU')}`
+        : null,
+    };
+  }
 }
