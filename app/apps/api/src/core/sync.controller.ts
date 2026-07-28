@@ -62,6 +62,9 @@ export class SyncController {
 
     let created = 0, skipped = 0, errors = 0;
     for (const e of events) {
+      // terminalId в журнале может быть null (старые записи) —
+      // такие события разобрать нельзя, пропускаем
+      if (!e.terminalId) { skipped++; continue; }
       const r = await this.materializer.materialize({
         terminalId: e.terminalId,
         payload: e.payload as any,
