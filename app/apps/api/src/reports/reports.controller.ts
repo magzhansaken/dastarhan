@@ -675,4 +675,133 @@ export class ReportsController {
       note: 'Блюдо продаётся в одной точке и не идёт в другой — проверьте меню и стоп-лист',
     };
   }
+
+  /**
+   * Прогноз выручки на неделю вперёд.
+   *
+   * У iiko прогноз есть, но он «рассчитан системой» и приходит
+   * уведомлением. Владельцу нужно другое: сколько людей ставить
+   * в смену и сколько закупать продуктов.
+   */
+  @Get('forecast')
+  @RequirePermission('reports.view')
+  async forecast(@Req() req: any, @Query('locationId') locationId?: string) {
+    const from = new Date();
+    from.setDate(from.getDate() - 56);   // восемь недель истории
+
+    const orders = await this.prisma.order.findMany({
+      where: {
+        ...(locationId ? { locationId } : { accountId: req.user.acc }),
+        status: 'CLOSED',
+        closedAt: { gte: from },
+      },
+      select: { total: true, closedAt: true, guestsCount: true },
+    });
+
+    if (orders.length < 30) {
+      return {
+        ready: false,
+        note: 'Мало данных — прогноз появится после месяца работы',
+        days: [],
+      };
+    }
+
+    // Группируем по дню недели: понедельник и суббота живут
+    // по разным законам, усреднять их бессмысленно
+    const byDow = new Map<number, { revenue: number[]; checks: number[] }>();
+    const byDate = new Map<string, { revenue: number; checks: number; dow: number }>();
+
+    for (const o of orders) {
+      const key = o.closedAt!.toISOString().slice(0, 10);
+      const dow = (o.closedAt!.getDay() + 6) % 7;
+      const cur = byDate.get(key) ?? { revenue: 0, checks: 0, dow };
+      cur.revenue += o.total;
+      cur.checks++;
+      byDate.set(key, cur);
+    }
+
+    for (const [, v] of byDate) {
+      const cur = byDow.get(v.dow) ?? { revenue: [], checks: [] };
+      cur.revenue.push(v.revenue);
+      cur.checks.push(v.checks);
+      byDow.set(v.dow, cur);
+    }
+
+    const median = (arr: number[]) => {
+      if (!arr.length) return 0;
+      const s = [...arr].sort((a, b) => a - b);
+      return s.length % 2
+        ? s[(s.length - 1) / 2]
+        : Math.round((s[s.length / 2 - 1] + s[s.length / 2]) / 2);
+    };
+
+    // Тренд: сравниваем последние две недели с предыдущими двумя.
+    // Если заведение растёт, прогноз по медиане будет занижен
+    const dates = [...byDate.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const half = Math.floor(dates.length / 2);
+    const oldSum = dates.slice(0, half).reduce((s, [, v]) => s + v.revenue, 0);
+    const newSum = dates.slice(half).reduce((s, [, v]) => s + v.revenue, 0);
+    const trend = oldSum > 0 ? newSum / oldSum : 1;
+    // Ограничиваем поправку: скачок втрое почти всегда случайность
+    const factor = Math.min(1.5, Math.max(0.7, trend));
+
+    const names = ['понедельник','вторник','среда','четверг','пятница','суббота','воскресенье'];
+    const days = [];
+    const today = new Date();
+
+    for (let i = 1; i <= 7; i++) {
+      const d = new Date(today);
+      d.setDate(d.getDate() + i);
+      const dow = (d.getDay() + 6) % 7;
+      const hist = byDow.get(dow);
+
+      const baseRevenue = median(hist?.revenue ?? []);
+      const baseChecks = median(hist?.checks ?? []);
+      const revenue = Math.round(baseRevenue * factor);
+
+      // Разброс показывает надёжность прогноза: если субботы
+      // скачут вдвое, планировать по среднему нельзя
+      const vals = hist?.revenue ?? [];
+      const spread = vals.length > 1
+        ? Math.round(((Math.max(...vals) - Math.min(...vals)) / (median(vals) || 1)) * 100)
+        : 0;
+
+      days.push({
+        date: d,
+        dayName: names[dow],
+        forecastRevenue: revenue,
+        forecastChecks: Math.round(baseChecks * factor),
+        // Сколько людей ставить: один кассир на 60 чеков за смену
+        suggestedStaff: Math.max(1, Math.ceil((baseChecks * factor) / 60)),
+        confidence: spread < 30 ? 'high' : spread < 60 ? 'medium' : 'low',
+        spreadPct: spread,
+        basedOnDays: vals.length,
+      });
+    }
+
+    const weekTotal = days.reduce((s, d) => s + d.forecastRevenue, 0);
+    const best = days.reduce((a, b) => (b.forecastRevenue > a.forecastRevenue ? b : a), days[0]);
+    const worst = days.reduce((a, b) => (b.forecastRevenue < a.forecastRevenue ? b : a), days[0]);
+
+    return {
+      ready: true,
+      basedOnDays: byDate.size,
+      trendPct: Math.round((factor - 1) * 100),
+      days,
+      weekTotal,
+      busiest: { day: best.dayName, revenue: best.forecastRevenue },
+      quietest: { day: worst.dayName, revenue: worst.forecastRevenue },
+      // Практический вывод вместо цифр: владелец должен понять,
+      // что делать, а не любоваться графиком
+      advice: [
+        `Больше всего гостей в ${best.dayName} — поставьте ${best.suggestedStaff} кассира`,
+        `В ${worst.dayName} тише — хороший день для инвентаризации`,
+        factor > 1.1
+          ? `Выручка растёт на ${Math.round((factor - 1) * 100)}% — закупайте с запасом`
+          : factor < 0.9
+          ? `Выручка снижается на ${Math.round((1 - factor) * 100)}% — не затоваривайтесь`
+          : null,
+      ].filter(Boolean),
+    };
+  }
 }
