@@ -2069,3 +2069,50 @@ model ApiCall {
 
   @@index([keyId, at])
 }
+
+/// Уведомление. Правило простое: если человеку не надо ничего
+/// делать — это не уведомление, а запись в журнале.
+model Notification {
+  id         String   @id @default(cuid())
+  accountId  String
+  userId     String?                   // null = всем с нужным правом
+  locationId String?
+  kind       String                    // 'shift_open', 'low_stock', 'expired'
+  level      NotifyLevel @default(INFO)
+  title      String
+  body       String?
+  /// Что нажать: ссылка на экран, где проблема решается
+  actionUrl  String?
+  actionText String?
+  /// Ключ дедупликации: не слать «конина кончается» каждый час
+  dedupKey   String?
+  readAt     DateTime?
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([accountId, userId, readAt])
+  @@index([dedupKey])
+}
+
+/// Подписка на уведомления: кому какие и куда.
+model NotifySubscription {
+  id         String   @id @default(cuid())
+  accountId  String
+  userId     String
+  kind       String
+  /// Каналы: in_app, telegram, sms. Пуш дороже, чем кажется —
+  /// разбудить владельца в три ночи ради «мало салфеток» плохо
+  channels   String[] @default(["in_app"])
+  /// Тихие часы: не беспокоить с 23:00 до 08:00, кроме срочного
+  quietFrom  Int?
+  quietTo    Int?
+  isActive   Boolean  @default(true)
+
+  @@unique([userId, kind])
+}
+
+enum NotifyLevel {
+  INFO      // к сведению, в общий список
+  WARN      // стоит посмотреть сегодня
+  URGENT    // прямо сейчас, пробивает тихие часы
+}
