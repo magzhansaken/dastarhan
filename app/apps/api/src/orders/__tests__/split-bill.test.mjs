@@ -29,15 +29,15 @@ eq('одна часть — не разбивка',
   validateSplit(['a','b','c'], [{itemIds:['a','b','c']}]).ok, false);
 
 // суммы
-eq('первая часть 380 000', sumOf(items, ['a','b']), 38000000);
-eq('вторая часть 250 000', sumOf(items, ['c']), 25000000);
+eq('первая часть 380 000 ₸', sumOf(items, ['a','b']), 380000);
+eq('вторая часть 250 000 ₸', sumOf(items, ['c']), 250000);
 eq('сумма частей = целому',
   sumOf(items,['a','b']) + sumOf(items,['c']),
   items.reduce((s,i)=>s+i.qty*i.price,0));
 
 // равные доли
 const equal = (total, guests) => guests > 1 ? Math.round(total/guests) : total;
-eq('поровну на троих', equal(63000000, 3), 21000000);
-eq('один гость — вся сумма', equal(63000000, 1), 63000000);
+eq('поровну на троих', equal(630000, 3), 210000);
+eq('один гость — вся сумма', equal(630000, 1), 630000);
 
 console.log(`\nИТОГ: ${p}/${p+f}`); process.exit(f?1:0);
