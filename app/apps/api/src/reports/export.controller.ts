@@ -211,7 +211,6 @@ export class ExportController {
       cur.revenue += o.total;
       cur.checks++;
       for (const p of payBy.get(o.id) ?? []) {
-        if (p.status !== 'CAPTURED') continue;
         if (p.kind === 'CASH') cur.cash += p.amount;
         else if (p.kind === 'CARD') cur.card += p.amount;
         else cur.qr += p.amount;
