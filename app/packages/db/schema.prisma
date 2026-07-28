@@ -1661,3 +1661,50 @@ enum TaxMode {
   VAT         // общий режим: НДС в чеке
   RETAIL      // розничный налог
 }
+
+/// Купон: код на скидку или подарок. В отличие от бонусов
+/// не требует регистрации гостя — работает по коду из рекламы,
+/// с флаера или из рассылки.
+model Coupon {
+  id          String   @id @default(cuid())
+  accountId   String
+  code        String                    // BESH20, NEWYEAR
+  title       String                    // «Скидка 20% на бешбармак»
+  kind        CouponKind
+  value       Int                       // проценты или тиыны
+  productId   String?                   // если купон на конкретное блюдо
+  minTotal    Int      @default(0)      // порог суммы чека
+  /// Ограничение по количеству: акция не должна разорить заведение,
+  /// если код утечёт в интернет
+  maxUses     Int?
+  usedCount   Int      @default(0)
+  perGuest    Int      @default(1)      // сколько раз может один гость
+  startsAt    DateTime?
+  endsAt      DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  uses        CouponUse[]
+
+  @@unique([accountId, code])
+  @@index([accountId, isActive])
+}
+
+model CouponUse {
+  id         String   @id @default(cuid())
+  couponId   String
+  coupon     Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  orderId    String
+  customerId String?
+  amount     Int                        // сколько скинули по факту
+  at         DateTime @default(now())
+
+  @@index([couponId])
+  @@index([orderId])
+}
+
+enum CouponKind {
+  PERCENT      // процент от чека
+  AMOUNT       // фиксированная сумма
+  FREE_ITEM    // блюдо в подарок
+}
