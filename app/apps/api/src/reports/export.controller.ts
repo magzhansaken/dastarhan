@@ -36,14 +36,6 @@ export class ExportController {
     const pays = await this.prisma.payment.findMany({
       where: { orderId: { in: orders.map((o) => o.id) }, status: 'CAPTURED' },
       select: { orderId: true, kind: true, amount: true },
-    });
-    const payBy = new Map<string, { kind: string; amount: number }[]>();
-    for (const p of pays) {
-      const arr = payBy.get(p.orderId) ?? [];
-      arr.push({ kind: p.kind, amount: p.amount });
-      payBy.set(p.orderId, arr);
-    }
-
     const payments = await this.prisma.payment.findMany({
       where: { orderId: { in: orders.map((o) => o.id) } },
       select: { orderId: true, kind: true },
@@ -187,6 +179,18 @@ export class ExportController {
 
     // Refund привязан к платежу, а не к аккаунту напрямую —
     // берём возвраты по платежам заказов этого периода
+    // Платежи заказов: Payment связан с Order только по orderId
+    const pays = await this.prisma.payment.findMany({
+      where: { orderId: { in: orders.map((o) => o.id) }, status: 'CAPTURED' },
+      select: { orderId: true, kind: true, amount: true },
+    });
+    const payBy = new Map<string, { kind: string; amount: number }[]>();
+    for (const p of pays) {
+      const arr = payBy.get(p.orderId) ?? [];
+      arr.push({ kind: p.kind, amount: p.amount });
+      payBy.set(p.orderId, arr);
+    }
+
     const refunds = await this.prisma.refund.findMany({
       where: {
         createdAt: { gte: from, lt: to },
@@ -399,8 +403,8 @@ export class ExportController {
     // но налог платит ежеквартально
     const quarter = Math.floor(now.getMonth() / 3) + 1;
     const nextQuarterEnd = new Date(now.getFullYear(), quarter * 3, 0);
-    const payBy = new Date(nextQuarterEnd);
-    payBy.setDate(payBy.getDate() + 25);
+    const payDeadline = new Date(nextQuarterEnd);
+    payDeadline.setDate(payDeadline.getDate() + 25);
 
     return {
       taxMode: account?.taxMode ?? 'SIMPLIFIED',
@@ -415,8 +419,8 @@ export class ExportController {
       },
       quarter,
       quarterEnds: nextQuarterEnd,
-      payTaxBy: payBy,
-      daysToPay: Math.ceil((payBy.getTime() - now.getTime()) / 86400_000),
+      payTaxBy: payDeadline,
+      daysToPay: Math.ceil((payDeadline.getTime() - now.getTime()) / 86400_000),
       files: [
         { key: 'sales-book', label: 'Книга продаж', path: '/export/sales-book' },
         { key: 'turnover', label: 'Оборотно-сальдовая по складу', path: '/export/stock-turnover.csv' },
@@ -424,8 +428,8 @@ export class ExportController {
       ],
       // Напоминание за неделю: штраф за просрочку больше,
       // чем сумма налога у маленького кафе
-      reminder: Math.ceil((payBy.getTime() - now.getTime()) / 86400_000) <= 7
-        ? `Налог за квартал платить до ${payBy.toLocaleDateString('ru-RU')}`
+      reminder: Math.ceil((payDeadline.getTime() - now.getTime()) / 86400_000) <= 7
+        ? `Налог за квартал платить до ${payDeadline.toLocaleDateString('ru-RU')}`
         : null,
     };
   }
