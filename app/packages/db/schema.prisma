@@ -627,6 +627,10 @@ enum PaymentStatus {
 }
 
 model Payment {
+  /// Отмена оплаты картой. Система только фиксирует —
+  /// сам возврат делается на банковском терминале
+  voidedAt   DateTime?
+  voidReason String?
   id         String        @id @default(cuid())
   orderId    String
   methodId   String
