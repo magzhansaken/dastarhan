@@ -84,6 +84,52 @@ export class ReportsController {
     return alerts;
   }
 
+  /**
+   * Выручка по часам для столбиков на дашборде.
+   * Владелец смотрит утром за кофе: где провал, где пик,
+   * и надо ли ставить второго кассира на обед.
+   */
+  @Get('by-hour')
+  @RequirePermission('reports.view')
+  async byHour(
+    @Query('period') period: 'day' | 'week' | 'month' = 'day',
+    @Req() req?: any,
+  ) {
+    const now = new Date();
+    const from = new Date(now);
+    if (period === 'week') from.setDate(from.getDate() - 7);
+    else if (period === 'month') from.setDate(from.getDate() - 30);
+    else from.setHours(0, 0, 0, 0);
+
+    const orders = await this.prisma.order.findMany({
+      where: { accountId: req.user.acc, status: 'CLOSED', closedAt: { gte: from, lte: now } },
+      select: { total: true, closedAt: true },
+    });
+
+    // 24 часа всегда, даже пустые: провал в графике виден только
+    // тогда, когда есть с чем сравнить соседние часы
+    const hours = Array.from({ length: 24 }, (_, h) => ({ hour: h, revenue: 0, checks: 0 }));
+    for (const o of orders) {
+      const h = o.closedAt!.getHours();
+      hours[h].revenue += o.total;
+      hours[h].checks++;
+    }
+
+    const peak = hours.reduce((a, b) => (b.revenue > a.revenue ? b : a), hours[0]);
+    const working = hours.filter((h) => h.checks > 0);
+
+    return {
+      period,
+      hours,
+      peakHour: peak.checks > 0 ? peak.hour : null,
+      peakRevenue: peak.revenue,
+      // Открытые часы: заведение работает не круглосуточно,
+      // и «средний час» по 24 часам врёт вдвое
+      avgPerWorkingHour: working.length
+        ? Math.round(working.reduce((s, h) => s + h.revenue, 0) / working.length) : 0,
+    };
+  }
+
   /** Продажи за период: выручка, чеки, средний чек, разбивка по часам. */
   @Get('sales')
   @RequirePermission('reports.view')
