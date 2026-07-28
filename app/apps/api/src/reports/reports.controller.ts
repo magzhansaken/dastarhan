@@ -637,8 +637,8 @@ export class ReportsController {
 
     const orders = await this.prisma.order.findMany({
       where: { accountId: req.user.acc, status: 'CLOSED', closedAt: { gte: from } },
+      // Связь берётся через include: select для неё не работает
       include: { items: { where: { isRemoved: false } } },
-      select: { locationId: true, items: true },
     });
 
     const byDish = new Map<string, { name: string; byLoc: Map<string, number> }>();
