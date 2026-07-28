@@ -2,10 +2,30 @@
 // Доставка: зоны, рейсы курьеров, долг наличных.
 // Геометрия зон и денежная логика рейса уже в delivery.logic и покрыты
 // тестами — контроллер только выбирает данные и вызывает их.
-import { Controller, Get, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller, Get, Post, Body, Query, UseGuards, Req,
+  BadRequestException, NotFoundException,
+} from '@nestjs/common';
+import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 import { PrismaService } from '../core/prisma.service';
 import { JwtGuard } from '../auth/jwt.guard';
 import { resolveZone } from './delivery.logic';
+
+class DeliveredDto {
+  @IsString() orderId!: string;
+  // Наличные, принятые у двери. Ноль для предоплаченных Kaspi
+  @IsInt() @Min(0) cashTaken!: number;
+}
+
+class ReturnedDto {
+  @IsString() orderId!: string;
+  @IsString() reason!: string;
+}
+
+class HandoverDto {
+  @IsString() tripId!: string;
+  @IsInt() @Min(1, { message: 'Сумма должна быть больше нуля' }) amount!: number;
+}
 
 @Controller('delivery')
 @UseGuards(JwtGuard)
@@ -107,6 +127,8 @@ export class DeliveryController {
       cashCollected: trip.cashCollected,
       cashReturned: trip.cashReturned,
       cashDebt,
+      // Долг виден курьеру постоянно — он должен знать,
+      // сколько сдавать, не считая в уме между адресами
       orders: infos.map((i) => ({
         orderId: i.orderId,
         number: orderById.get(i.orderId)?.number ?? null,
@@ -119,5 +141,120 @@ export class DeliveryController {
         status: orderById.get(i.orderId)?.status ?? null,
       })),
     };
+  }
+
+  /**
+   * Заказ вручён. Наличные, принятые у двери, ложатся в долг курьера —
+   * он сдаст их на кассе при закрытии рейса.
+   */
+  @Post('delivered')
+  async delivered(@Body() dto: DeliveredDto) {
+    const info = await this.prisma.deliveryInfo.findFirst({
+      where: { orderId: dto.orderId },
+    });
+    if (!info) throw new NotFoundException({ code: 'DELIVERY_NOT_FOUND' });
+    if (!info.tripId) throw new BadRequestException({ code: 'NOT_IN_TRIP' });
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: dto.orderId },
+        data: { status: 'CLOSED', closedAt: new Date() },
+      });
+
+      if (dto.cashTaken > 0) {
+        const trip = await tx.courierTrip.findUnique({ where: { id: info.tripId! } });
+        await tx.courierTrip.update({
+          where: { id: info.tripId! },
+          data: { cashCollected: (trip?.cashCollected ?? 0) + dto.cashTaken },
+        });
+      }
+    });
+
+    return { ok: true, orderId: dto.orderId, cashTaken: dto.cashTaken };
+  }
+
+  /**
+   * Возврат: гость не открыл, отказался, адрес не найден.
+   * Причина уходит менеджеру — по ней потом видно, что чинить:
+   * адреса, курьеров или предоплату.
+   */
+  @Post('returned')
+  async returned(@Body() dto: ReturnedDto) {
+    const info = await this.prisma.deliveryInfo.findFirst({
+      where: { orderId: dto.orderId },
+    });
+    if (!info) throw new NotFoundException({ code: 'DELIVERY_NOT_FOUND' });
+
+    await this.prisma.order.update({
+      where: { id: dto.orderId },
+      data: { status: 'CANCELLED', comment: `Возврат: ${dto.reason}` },
+    });
+
+    return { ok: true, orderId: dto.orderId, reason: dto.reason };
+  }
+
+  /** Сдача наличных на кассе. Долг уменьшается на сданную сумму. */
+  @Post('handover')
+  async handover(@Body() dto: HandoverDto) {
+    const trip = await this.prisma.courierTrip.findUnique({ where: { id: dto.tripId } });
+    if (!trip) throw new NotFoundException({ code: 'TRIP_NOT_FOUND' });
+
+    const debt = trip.cashCollected - trip.cashReturned;
+    if (dto.amount > debt) {
+      throw new BadRequestException({
+        code: 'OVER_DEBT',
+        message: `Курьер должен ${Math.trunc(debt / 100)} ₸, сдаёт больше`,
+        debt,
+      });
+    }
+
+    const updated = await this.prisma.courierTrip.update({
+      where: { id: dto.tripId },
+      data: { cashReturned: trip.cashReturned + dto.amount },
+    });
+
+    return {
+      ok: true,
+      cashCollected: updated.cashCollected,
+      cashReturned: updated.cashReturned,
+      debt: updated.cashCollected - updated.cashReturned,
+    };
+  }
+
+  /**
+   * Закрыть рейс. Нельзя при долге или заказах в пути —
+   * это защита кассы: курьер не уходит домой с чужими деньгами.
+   */
+  @Post('close-trip')
+  async closeTrip(@Body() dto: { tripId: string }) {
+    const trip = await this.prisma.courierTrip.findUnique({ where: { id: dto.tripId } });
+    if (!trip) throw new NotFoundException({ code: 'TRIP_NOT_FOUND' });
+
+    const debt = trip.cashCollected - trip.cashReturned;
+    if (debt !== 0) {
+      throw new BadRequestException({
+        code: 'DEBT_NOT_ZERO',
+        message: `Сначала сдайте ${Math.trunc(debt / 100)} ₸ на кассе`,
+        debt,
+      });
+    }
+
+    const infos = await this.prisma.deliveryInfo.findMany({ where: { tripId: dto.tripId } });
+    const inFlight = await this.prisma.order.count({
+      where: { id: { in: infos.map((i) => i.orderId) }, status: 'OPEN' },
+    });
+    if (inFlight > 0) {
+      throw new BadRequestException({
+        code: 'ORDERS_IN_FLIGHT',
+        message: `В пути ещё ${inFlight} заказ${inFlight === 1 ? '' : 'а'}`,
+      });
+    }
+
+    await this.prisma.courierTrip.update({
+      where: { id: dto.tripId },
+      data: { closedAt: new Date() },
+    });
+
+    return { ok: true, closed: true, orders: infos.length };
   }
 }
