@@ -61,7 +61,12 @@ export class PayrollController {
     });
     const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
 
-    const rows = [];
+    const rows: {
+      userId: string; name: string; shiftsCount: number; hours: number;
+      personalSales: number;
+      lines: { kind: string; label: string; amount: number }[];
+      accrued: number; advances: number; toPay: number;
+    }[] = [];
     for (const rule of rules) {
       const [shifts, orders, manual] = await Promise.all([
         this.prisma.cashShift.findMany({
@@ -84,7 +89,7 @@ export class PayrollController {
         s + (sh.closedAt!.getTime() - sh.openedAt.getTime()) / 3600_000, 0);
       const personalSales = orders.reduce((s, o) => s + o.total, 0);
 
-      const lines = [];
+      const lines: { kind: string; label: string; amount: number }[] = [];
       if (rule.salary > 0) {
         lines.push({ kind: 'SALARY', label: 'Оклад', amount: rule.salary });
       }

@@ -139,7 +139,13 @@ export class ApiKeysController {
     });
 
     const now = Date.now();
-    const out = [];
+    const out: {
+      id: string; name: string; prefix: string;
+      scopes: { key: string; label: string }[];
+      isActive: boolean; expiresAt: Date | null; expired: boolean;
+      lastUsedAt: Date | null; idleDays: number | null;
+      calls24h: number; errors24h: number; warning: string | null;
+    }[] = [];
     for (const k of keys) {
       const calls24h = await this.prisma.apiCall.count({
         where: { keyId: k.id, at: { gte: new Date(now - 86400_000) } },
