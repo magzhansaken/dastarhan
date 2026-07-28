@@ -58,7 +58,28 @@ for (const f of files)
   for (const b of readFileSync(f))
     if (b < 32 && ![9, 10, 13].includes(b)) { console.log(`символ   ${f}`); bad++; break; }
 
-// 5. Импорты против списка контроллеров
+// 5. Баланс скобок и методы внутри класса
+for (const f of files) {
+  const src = readFileSync(f, 'utf-8');
+  const open_ = (src.match(/\{/g) || []).length;
+  const close = (src.match(/\}/g) || []).length;
+  if (open_ !== close) { console.log(`скобки   ${f} — ${open_} открывающих, ${close} закрывающих`); bad++; continue; }
+  // класс не должен закрываться раньше методов
+  const lines = src.split('\n');
+  let d = 0;
+  for (let i = 0; i < lines.length; i++) {
+    d += (lines[i].match(/\{/g) || []).length - (lines[i].match(/\}/g) || []).length;
+    if (d === 0 && i > 20 && i < lines.length - 3) {
+      const rest = lines.slice(i + 1).join('\n');
+      if (/@(Get|Post|Patch|Delete)\(/.test(rest)) {
+        console.log(`структура ${f} — методы после закрытия класса (строка ${i + 1})`); bad++;
+      }
+      break;
+    }
+  }
+}
+
+// 6. Импорты против списка контроллеров
 const mod = readFileSync(join(SRC, 'app.module.ts'), 'utf-8');
 const imp = new Set([...mod.matchAll(/import \{ (\w+Controller) \}/g)].map((m) => m[1]));
 const lm = mod.match(/controllers:\s*\[([\s\S]*?)\]/);
