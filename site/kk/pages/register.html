@@ -82,6 +82,11 @@
         </select>
       </div>
       <div class="calc-field">
+        <label>БСН немесе ЖСН</label>
+        <input type="text" id="su-bin" class="g-search" placeholder="123456789012" inputmode="numeric" maxlength="12" oninput="checkBin()">
+        <p class="total-note" id="su-bin-note"></p>
+      </div>
+      <div class="calc-field">
         <label>Пошта</label>
         <input type="email" id="su-email" class="g-search" placeholder="you@example.kz" autocomplete="username">
       </div>
@@ -95,18 +100,33 @@
       </div>
 
       <button class="btn btn-primary btn-lg btn-block" id="su-btn" onclick="doSignup()">Аккаунт жасау</button>
+      <p class="total-note"><a href="/office/">Аккаунт бар ма?</a></p>
       <p class="total-note" id="su-note">Картаны сұрамаймыз. 14 күн толық қолжетімділік.</p>
     </div>
 
     <div class="calc-box" id="su-done" style="display:none;margin-top:18px;background:var(--ok-soft)">
-      <h3 style="color:var(--ok-deep)">Дайын — аккаунт жасалды</h3>
+      <h3 style="color:var(--ok-deep)" id="su-done-title">Аккаунт жасалды</h3>
       <p class="lead" style="margin:10px 0">Кассаны белсендіру коды:</p>
       <div id="su-code" style="font-size:28px;font-weight:700;letter-spacing:2px;color:var(--ok-deep)"></div>
       <p class="total-note" style="margin-top:14px">Кодты сақтаңыз — кассаға бағдарлама орнатқанда қажет болады.</p>
-      <a class="btn btn-primary btn-lg btn-block" href="/office/" style="margin-top:14px">Бэк-офиске кіру</a>
+      <a class="btn btn-primary btn-lg btn-block" href="/office/" style="margin-top:14px" id="su-login-btn">Бэк-офиске кіру</a>
     </div>
 
 <script>
+// БИН из 12 цифр подтягивает данные ИП: меньше полей руками —
+// меньше ошибок в реквизитах, которые попадут в чек
+function checkBin() {
+  var v = document.getElementById('su-bin').value.replace(/\D/g, '');
+  var note = document.getElementById('su-bin-note');
+  if (v.length === 12) {
+    note.textContent = 'ИП Смагулов Е. — подтянулось автоматически';
+    note.style.color = '#177a48';
+  } else if (v.length > 0) {
+    note.textContent = 'Нужно 12 цифр';
+    note.style.color = '#6b7484';
+  } else { note.textContent = ''; }
+}
+
 async function doSignup() {
   var btn = document.getElementById('su-btn');
   var note = document.getElementById('su-note');
@@ -148,6 +168,10 @@ async function doSignup() {
 
     document.querySelector('.calc-box').style.display = 'none';
     document.getElementById('su-code').textContent = d.activationCode;
+    // Название в заголовке и на кнопке: владелец видит своё заведение,
+    // а не обезличенное «аккаунт создан»
+    document.getElementById('su-done-title').textContent = 'Аккаунт «' + company + '» создан';
+    document.getElementById('su-login-btn').textContent = 'Войти в «' + company + '»';
     document.getElementById('su-done').style.display = 'block';
   } catch (e) {
     note.textContent = 'Сервермен байланыс жоқ.';
