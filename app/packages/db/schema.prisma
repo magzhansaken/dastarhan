@@ -1717,3 +1717,59 @@ enum CouponKind {
   AMOUNT       // фиксированная сумма
   FREE_ITEM    // блюдо в подарок
 }
+
+/// Схема оплаты сотрудника. Три варианта покрывают весь общепит:
+/// оклад у менеджера, ставка за смену у кассира, процент у официанта.
+/// Комбинируются: ставка плюс процент — самая частая связка.
+model PayrollRule {
+  id          String   @id @default(cuid())
+  accountId   String
+  userId      String
+  locationId  String?
+  /// Оклад в месяц, тиыны
+  salary      Int      @default(0)
+  /// Ставка за смену — для тех, кто работает через день
+  perShift    Int      @default(0)
+  /// Почасовая — для подработки
+  perHour     Int      @default(0)
+  /// Процент с личных продаж
+  salesPct    Decimal  @default(0)
+  /// Процент с продаж своей категории: бармен с бара,
+  /// повар с кухни — иначе официант получает за чужую работу
+  categoryId  String?
+  isActive    Boolean  @default(true)
+  startsAt    DateTime @default(now())
+
+  @@index([accountId, userId])
+}
+
+/// Начисления и выплаты. Метод начисления: сначала записываем,
+/// что должны, потом отмечаем выплату. Без этого невозможно
+/// понять, сколько заведение должно людям прямо сейчас.
+model PayrollEntry {
+  id         String   @id @default(cuid())
+  accountId  String
+  userId     String
+  kind       PayrollKind
+  amount     Int                    // тиыны, положительное — начислено
+  periodFrom DateTime
+  periodTo   DateTime
+  note       String?
+  shiftId    String?
+  paidAt     DateTime?
+  byUserId   String
+  createdAt  DateTime @default(now())
+
+  @@index([accountId, userId, periodFrom])
+}
+
+enum PayrollKind {
+  SALARY      // оклад
+  SHIFT       // за смену
+  HOURLY      // почасовая
+  SALES_PCT   // процент с продаж
+  TIPS        // чаевые
+  BONUS       // премия
+  FINE        // штраф (отрицательная сумма)
+  ADVANCE     // аванс (отрицательная — уменьшает остаток)
+}
