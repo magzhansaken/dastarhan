@@ -10,8 +10,8 @@
 //     no-show в карточке гостя (3+ — предупреждение при новой брони)
 //  3) депозит брони через готовый кошелёк Этапа 6 (списание при no-show)
 import React, { useMemo, useState } from 'react';
-import { overlaps } from '../../../api/src/verticals/verticals.logic';
-import type { Slot } from '../../../api/src/verticals/verticals.logic';
+import { overlaps } from '../../../../packages/shared/src/verticals/verticals.logic';
+import type { Slot } from '../../../../packages/shared/src/verticals/verticals.logic';
 
 export type Money = number;
 
