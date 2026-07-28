@@ -117,7 +117,8 @@ export class TelegramController {
     if (!this.token) return { ok: false, code: 'NO_TOKEN' };
     const r = await fetch(
       `https://api.telegram.org/bot${this.token}/setWebhook?url=${encodeURIComponent(url)}`,
-    ).then((x) => x.json()).catch(() => null);
+    ).then((x) => x.json() as Promise<{ ok?: boolean; description?: string }>)
+     .catch(() => null);
     return { ok: !!r?.ok, result: r };
   }
 }

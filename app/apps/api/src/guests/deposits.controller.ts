@@ -103,7 +103,7 @@ export class DepositsController {
    * клиент платит в конце месяца, и блокировать его в обед нельзя.
    */
   @Post('spend')
-  @RequirePermission('order.pay')
+  @RequirePermission('order.create')
   async spend(@Body() dto: SpendDto, @Req() req: any) {
     const b = await this.balance(dto.customerId);
 

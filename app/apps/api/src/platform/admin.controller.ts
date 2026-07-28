@@ -159,9 +159,11 @@ export class AdminController {
       this.prisma.location.findMany({ where: { accountId: id }, select: { id: true, name: true } }),
       this.prisma.user.count({ where: { accountId: id, isActive: true } }),
       this.prisma.role.count({ where: { accountId: id } }),
+      // Явный тип: тернарник с пустым массивом даёт never[],
+      // и reduce по нему падает
       sub ? this.prisma.subPayment.findMany({
         where: { subId: sub.id }, orderBy: { at: 'desc' }, take: 24,
-      }) : Promise.resolve([]),
+      }) : Promise.resolve([] as { amount: number; at: Date; method: string; periodFrom: Date; periodTo: Date }[]),
       this.prisma.order.findMany({
         where: { accountId: id, status: 'CLOSED' },
         orderBy: { closedAt: 'desc' }, take: 1,
