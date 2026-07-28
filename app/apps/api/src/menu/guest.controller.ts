@@ -23,11 +23,17 @@ export class GuestController {
   async menu(@Param('token') token: string) {
     const table = await this.prisma.diningTable.findFirst({
       where: { id: token, isActive: true },
-      include: { hall: { include: { location: { include: { account: true } } } } },
+      include: { hall: true },
     });
     if (!table) throw new NotFoundException({ code: 'TABLE_NOT_FOUND' });
 
-    const location = table.hall.location;
+    // У Hall нет relation на Location — только locationId,
+    // поэтому точку и аккаунт читаем отдельными запросами
+    const location = await this.prisma.location.findUnique({
+      where: { id: table.hall.locationId },
+      include: { account: true },
+    });
+    if (!location) throw new NotFoundException({ code: 'LOCATION_NOT_FOUND' });
 
     const [categories, products, stops, prices] = await Promise.all([
       this.prisma.menuCategory.findMany({
@@ -85,17 +91,24 @@ export class GuestController {
   async callWaiter(@Body() dto: CallWaiterDto) {
     const table = await this.prisma.diningTable.findFirst({
       where: { id: dto.tableToken, isActive: true },
-      include: { hall: { include: { location: true } } },
+      include: { hall: true },
     });
     if (!table) throw new NotFoundException({ code: 'TABLE_NOT_FOUND' });
+
+    const location = await this.prisma.location.findUnique({
+      where: { id: table.hall.locationId },
+      select: { accountId: true },
+    });
+    if (!location) throw new NotFoundException({ code: 'LOCATION_NOT_FOUND' });
 
     await this.prisma.eventLog.create({
       data: {
         eventId: randomUUID(),
-        accountId: table.hall.location.accountId,
+        accountId: location.accountId,
         terminalId: null,
         type: 'guest.waiter_called',
         payload: { tableId: table.id, tableName: table.name },
+        createdAt: new Date(),
       },
     }).catch(() => null);
 
