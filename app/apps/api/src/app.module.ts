@@ -30,6 +30,11 @@ import { DealerController } from './dealer/dealer.controller';
 import { TelegramController } from './integrations/telegram.controller';
 import { AggregatorsController } from './integrations/aggregators.controller';
 import { ExportController } from './reports/export.controller';
+import { BackupController } from './core/backup.controller';
+import { AuditController } from './staff/audit.controller';
+import { PromoController } from './menu/promo.controller';
+import { ModifiersController } from './menu/modifiers.controller';
+import { ScalesController } from './verticals/scales.controller';
 import { KdsController } from './kds/kds.controller';
 import { BillingController } from './billing/billing.controller';
 import { StockController } from './stock/stock.controller';
@@ -53,7 +58,7 @@ import { VerticalsController } from './verticals/verticals.controller';
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
-    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController, StaffController, DealerController, SupplyController, ButcheringController, DepositsController, AggregatorsController, ExportController],
+    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController, StaffController, DealerController, SupplyController, ButcheringController, DepositsController, AggregatorsController, ExportController, ScalesController, AuditController, BackupController, ModifiersController, PromoController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}
