@@ -25,8 +25,17 @@ export class AdminController {
     const planById = new Map(plans.map((p) => [p.id, p]));
     const subByAccount = new Map(subs.map((s) => [s.accountId, s]));
 
-    const metrics = [];
-    const telemetry = [];
+    // Типы задаём явно: пустой литерал даёт never[], и push падает
+    const metrics: {
+      accountId: string; name: string; status: string; mrr: number;
+      startedAt: Date; firstReceiptAt: Date | null; source: 'self' | 'dealer';
+    }[] = [];
+
+    const telemetry: {
+      accountId: string; name: string; mrr: number;
+      lastSeenAt: Date | null; lastReceiptAt: Date | null;
+      revenue7d: number; revenuePrev7d: number;
+    }[] = [];
     let totalMrr = 0;
 
     for (const a of accounts) {

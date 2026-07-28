@@ -223,7 +223,11 @@ export class ReportsController {
     const monthStart = new Date();
     monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
 
-    const rows = [];
+    const rows: {
+      userId: string; name: string; hours: number; shiftsCount: number;
+      personalSales: number; ordersCount: number;
+    }[] = [];
+
     for (const u of users) {
       if (u.isOwner) continue;
 
