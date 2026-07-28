@@ -112,6 +112,9 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [stops, setStops] = useState<Record<string, number | null>>({});
   const [order, setOrder] = useState<OrderState | null>(null);
   const [paying, setPaying] = useState(false);
+  // Смешанная оплата: гость платит часть картой, часть наличными.
+  // Обычное дело при разделе счёта между гостями
+  const [paid, setPaid] = useState<{ methodId: string; amount: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [queued, setQueued] = useState(0);
@@ -166,8 +169,10 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
 
   if (paying && order) {
     const t = orderTotals(order);
+    const already = paid.reduce((s, p) => s + p.amount, 0);
+    const due = t.subtotal - already;
     return (
-      <PaymentScreen due={t.subtotal} orderNumber={order.number}
+      <PaymentScreen due={due} orderNumber={order.number}
         cashierName={user.name} subtotal={t.subtotal} fiscal="ok"
         methods={[
           { id: 'cash', name: 'Наличные', kind: 'CASH' },
@@ -175,6 +180,14 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
           { id: 'card', name: 'Карта', kind: 'CARD' },
         ]}
         onBack={() => setPaying(false)}
+        // Разделить счёт: принимаем часть суммы и остаёмся на экране,
+        // пока не закроем весь чек
+        onSplit={() => {
+          const raw = prompt(`К оплате ${Math.trunc(due / 100)} ₸. Сколько внести сейчас?`);
+          const part = Math.round(Number(raw) * 100);
+          if (!part || part <= 0 || part > due) return;
+          setPaid((p) => [...p, { methodId: 'cash', amount: part }]);
+        }}
         onConfirm={async (methodId, amount) => {
           const terminalId = localStorage.getItem('dastarhan.terminalId') ?? '';
           // Чек кладём в очередь ДО отправки: если связь оборвётся,
@@ -190,6 +203,9 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
                 productId: i.productId, name: i.name, qty: i.qty, unitPrice: i.unitPrice,
               })),
               total: t.subtotal, methodId, amount,
+              // Все части оплаты в чеке: бухгалтерия должна видеть,
+              // что 6 500 ₸ пришли двумя платежами, а не одним
+              payments: [...paid, { methodId, amount }],
               cashierId: user.id, closedAt: new Date().toISOString(),
             },
           });
@@ -197,6 +213,7 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
           setQueued(left);
           setOnline(left === 0);
 
+          setPaid([]);
           // Новый заказ сразу после оплаты: кассир не ждёт
           setOrder(reduceOrder(null, {
             type: 'order.opened', orderId: crypto.randomUUID(),
