@@ -510,4 +510,169 @@ export class ReportsController {
       reason,
     };
   }
+
+  /**
+   * Сводка по сети: все точки в одной таблице.
+   *
+   * У iiko для этого отдельный продукт iikoChain с бухгалтерскими
+   * проводками. Владельцу трёх кафе нужно другое: увидеть за минуту,
+   * какая точка тянет вниз и почему.
+   */
+  @Get('network')
+  @RequirePermission('reports.view')
+  async network(@Req() req: any, @Query('days') days = '7') {
+    const from = new Date();
+    from.setDate(from.getDate() - Number(days));
+    const prevFrom = new Date(from);
+    prevFrom.setDate(prevFrom.getDate() - Number(days));
+
+    const locations = await this.prisma.location.findMany({
+      where: { accountId: req.user.acc, isActive: true },
+      select: { id: true, name: true },
+    });
+    if (locations.length < 2) {
+      return { single: true, note: 'Сводка появится, когда точек станет больше одной' };
+    }
+
+    const rows = [];
+    for (const loc of locations) {
+      const [cur, prev, staff, terminals] = await Promise.all([
+        this.prisma.order.findMany({
+          where: { locationId: loc.id, status: 'CLOSED', closedAt: { gte: from } },
+          select: { total: true, guestsCount: true },
+        }),
+        this.prisma.order.findMany({
+          where: { locationId: loc.id, status: 'CLOSED', closedAt: { gte: prevFrom, lt: from } },
+          select: { total: true },
+        }),
+        this.prisma.employeeAssignment.count({ where: { locationId: loc.id } }),
+        this.prisma.terminal.findMany({
+          where: { locationId: loc.id, isActive: true },
+          select: { lastSeenAt: true },
+        }),
+      ]);
+
+      const revenue = cur.reduce((s, o) => s + o.total, 0);
+      const prevRevenue = prev.reduce((s, o) => s + o.total, 0);
+      const guests = cur.reduce((s, o) => s + (o.guestsCount ?? 1), 0);
+
+      // Точка не в сети — самое срочное: продажи идут мимо кассы
+      const now = Date.now();
+      const offline = terminals.every(
+        (t) => !t.lastSeenAt || now - t.lastSeenAt.getTime() > 2 * 3600_000,
+      );
+
+      rows.push({
+        locationId: loc.id,
+        name: loc.name,
+        revenue,
+        checks: cur.length,
+        avgCheck: cur.length ? Math.round(revenue / cur.length) : 0,
+        guests,
+        staffCount: staff,
+        // Выручка на сотрудника: точка с той же выручкой,
+        // но вдвое большим штатом — это не успех
+        revenuePerStaff: staff ? Math.round(revenue / staff) : 0,
+        changePct: prevRevenue > 0
+          ? +(((revenue - prevRevenue) / prevRevenue) * 100).toFixed(1) : null,
+        offline,
+      });
+    }
+
+    const total = rows.reduce((s, r) => s + r.revenue, 0);
+    const best = rows.reduce((a, b) => (b.revenue > a.revenue ? b : a), rows[0]);
+    const worst = rows.reduce((a, b) => (b.revenue < a.revenue ? b : a), rows[0]);
+
+    // Что требует внимания — сверху, а не алфавит: владелец открывает
+    // сводку, чтобы найти проблему, а не полюбоваться таблицей
+    const alerts = [];
+    for (const r of rows) {
+      if (r.offline) {
+        alerts.push({
+          level: 'high', locationName: r.name,
+          text: 'Касса не в сети больше двух часов — проверьте связь',
+        });
+      }
+      if (r.changePct !== null && r.changePct <= -20) {
+        alerts.push({
+          level: 'high', locationName: r.name,
+          text: `Выручка упала на ${Math.abs(r.changePct)}% — съездите или позвоните`,
+        });
+      }
+    }
+
+    return {
+      single: false,
+      periodDays: Number(days),
+      locationsCount: rows.length,
+      totalRevenue: total,
+      rows: rows
+        .map((r) => ({ ...r, share: total > 0 ? +((r.revenue / total) * 100).toFixed(1) : 0 }))
+        .sort((a, b) => b.revenue - a.revenue),
+      best: { name: best.name, revenue: best.revenue },
+      worst: { name: worst.name, revenue: worst.revenue },
+      // Разрыв между лучшей и худшей точкой: если он больше трёх раз,
+      // дело обычно не в проходимости, а в управлении
+      gapRatio: worst.revenue > 0 ? +(best.revenue / worst.revenue).toFixed(1) : null,
+      alerts,
+    };
+  }
+
+  /**
+   * Сравнение точек по меню: что продаётся в одной и не идёт в другой.
+   * Часто оказывается, что блюдо просто забыли добавить в стоп-лист
+   * или его нет в меню второй точки.
+   */
+  @Get('network-menu')
+  @RequirePermission('reports.view')
+  async networkMenu(@Req() req: any, @Query('days') days = '30') {
+    const from = new Date();
+    from.setDate(from.getDate() - Number(days));
+
+    const locations = await this.prisma.location.findMany({
+      where: { accountId: req.user.acc, isActive: true },
+      select: { id: true, name: true },
+    });
+    if (locations.length < 2) return { single: true, rows: [] };
+
+    const orders = await this.prisma.order.findMany({
+      where: { accountId: req.user.acc, status: 'CLOSED', closedAt: { gte: from } },
+      include: { items: { where: { isRemoved: false } } },
+      select: { locationId: true, items: true },
+    });
+
+    const byDish = new Map<string, { name: string; byLoc: Map<string, number> }>();
+    for (const o of orders) {
+      for (const i of o.items) {
+        const cur = byDish.get(i.productId) ?? { name: i.nameSnapshot, byLoc: new Map() };
+        cur.byLoc.set(o.locationId, (cur.byLoc.get(o.locationId) ?? 0) + Number(i.qty));
+        byDish.set(i.productId, cur);
+      }
+    }
+
+    const rows = [...byDish.entries()].map(([productId, v]) => {
+      const perLoc = locations.map((l) => ({
+        locationId: l.id, name: l.name, qty: v.byLoc.get(l.id) ?? 0,
+      }));
+      const sold = perLoc.filter((p) => p.qty > 0);
+      const zero = perLoc.filter((p) => p.qty === 0);
+
+      return {
+        productId, name: v.name,
+        total: perLoc.reduce((s, p) => s + p.qty, 0),
+        perLocation: perLoc,
+        // Блюдо идёт в одной точке и не идёт в другой — повод
+        // проверить, есть ли оно там в меню вообще
+        suspicious: sold.length > 0 && zero.length > 0 && sold.length >= zero.length,
+        missingAt: zero.map((z) => z.name),
+      };
+    });
+
+    return {
+      single: false,
+      rows: rows.sort((a, b) => b.total - a.total).slice(0, 50),
+      suspiciousCount: rows.filter((r) => r.suspicious).length,
+      note: 'Блюдо продаётся в одной точке и не идёт в другой — проверьте меню и стоп-лист',
+    };
+  }
 }
