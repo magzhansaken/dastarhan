@@ -269,4 +269,102 @@ export class AdminController {
     });
     return { ok: true, status: 'SUSPENDED' };
   }
+
+  /**
+   * Здоровье клиентов: кто уйдёт, если сегодня не позвонить.
+   * Не список с метриками, а очередь на обзвон с готовой зацепкой.
+   */
+  @Get('health')
+  async health() {
+    const accounts = await this.prisma.account.findMany({ take: 200 });
+    const subs = await this.prisma.subscription.findMany();
+    const plans = await this.prisma.plan.findMany();
+    const planById = new Map(plans.map((p) => [p.id, p]));
+    const subBy = new Map(subs.map((s) => [s.accountId, s]));
+
+    const now = Date.now();
+    const week = new Date(now - 7 * 86400_000);
+    const prevWeek = new Date(now - 14 * 86400_000);
+
+    const rows = [];
+    let totalMrr = 0;
+
+    for (const a of accounts) {
+      const sub = subBy.get(a.id);
+      if (!sub || sub.status === 'CANCELLED') continue;
+
+      const plan = planById.get(sub.planId);
+      const locations = await this.prisma.location.count({ where: { accountId: a.id } });
+      const mrr = (plan?.pricePerLocationMonth ?? 0) * Math.max(1, locations);
+      totalMrr += mrr;
+
+      const terminal = await this.prisma.terminal.findFirst({
+        where: { location: { accountId: a.id } },
+        orderBy: { lastSeenAt: 'desc' },
+        select: { lastSeenAt: true },
+      });
+
+      const [last, cur, prev] = await Promise.all([
+        this.prisma.order.findFirst({
+          where: { accountId: a.id, status: 'CLOSED' },
+          orderBy: { closedAt: 'desc' }, select: { closedAt: true },
+        }),
+        this.prisma.order.aggregate({
+          where: { accountId: a.id, status: 'CLOSED', closedAt: { gte: week } },
+          _sum: { total: true },
+        }),
+        this.prisma.order.aggregate({
+          where: { accountId: a.id, status: 'CLOSED', closedAt: { gte: prevWeek, lt: week } },
+          _sum: { total: true },
+        }),
+      ]);
+
+      const offlineDays = terminal?.lastSeenAt
+        ? Math.floor((now - terminal.lastSeenAt.getTime()) / 86400_000) : 999;
+      const noReceiptsDays = last?.closedAt
+        ? Math.floor((now - last.closedAt.getTime()) / 86400_000) : 999;
+      const curSum = cur._sum.total ?? 0;
+      const prevSum = prev._sum.total ?? 0;
+      const dropPct = prevSum > 0 ? Math.round(((curSum - prevSum) / prevSum) * 100) : 0;
+
+      // Три сигнала риска. Порядок важен: касса не в сети —
+      // самое срочное, выручка просела — можно позвонить завтра
+      const signals: string[] = [];
+      if (offlineDays >= 2) signals.push('offline');
+      if (noReceiptsDays >= 2) signals.push('no_receipts');
+      if (dropPct <= -30) signals.push('revenue_down');
+      if (!signals.length) continue;
+
+      rows.push({
+        accountId: a.id,
+        name: a.name,
+        mrr,
+        offlineDays: offlineDays === 999 ? null : offlineDays,
+        noReceiptsDays: noReceiptsDays === 999 ? null : noReceiptsDays,
+        revenueDropPct: dropPct,
+        signals,
+        level: signals.length >= 2 ? 'high' : 'medium',
+        // Готовая фраза для звонка: менеджер не думает, с чего начать,
+        // а сразу говорит по делу
+        opener:
+          offlineDays >= 2 ? `Касса не в сети ${offlineDays} дня — спросить, что случилось`
+          : noReceiptsDays >= 2 ? `Чеков нет ${noReceiptsDays} дня — возможно, вернулись на старую систему`
+          : `Выручка упала на ${Math.abs(dropPct)}% — узнать, сезон это или проблема`,
+      });
+    }
+
+    rows.sort((a, b) => b.mrr - a.mrr);
+    const atRisk = rows.reduce((s, r) => s + r.mrr, 0);
+
+    return {
+      title: 'Кто уйдёт, если сегодня не позвонить.',
+      callToday: rows.length,
+      mrrAtRisk: atRisk,
+      // Риск в долях MRR, а не в штуках: шесть заведений звучит
+      // терпимо, 11% от выручки платформы — уже разговор
+      mrrSharePct: totalMrr > 0 ? +((atRisk / totalMrr) * 100).toFixed(1) : 0,
+      totalMrr,
+      rows,
+    };
+  }
 }
