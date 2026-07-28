@@ -38,6 +38,17 @@ class ActivateDto {
   @IsOptional() @IsString() deviceInfo?: string;
 }
 
+/** Приводит modules к списку кодов независимо от формата хранения. */
+function toFeatureList(modules: unknown): string[] {
+  if (Array.isArray(modules)) return modules as string[];
+  if (modules && typeof modules === 'object') {
+    return Object.entries(modules as Record<string, unknown>)
+      .filter(([, v]) => v === true)
+      .map(([k]) => k);
+  }
+  return [];
+}
+
 @Controller('terminals')
 export class TerminalsController {
   constructor(private prisma: PrismaService) {}
@@ -233,7 +244,7 @@ export class TerminalsController {
   private buildLicense(sub: any, plan: any) {
     if (!sub) {
       return {
-        status: 'NONE', plan: null, features: [],
+        status: 'NONE', plan: null, features: [] as string[],
         canSell: false, reportsOpen: false,
         validUntil: null, graceUntil: null,
       };
@@ -247,7 +258,10 @@ export class TerminalsController {
       status: sub.status,
       plan: plan?.code ?? null,
       planName: plan?.name ?? null,
-      features: (plan?.modules as string[]) ?? [],
+      // modules хранится как Json и может быть объектом {ai:true}
+      // или массивом кодов — приводим к массиву, чтобы касса
+      // одинаково проверяла доступность функций
+      features: toFeatureList(plan?.modules),
       validUntil: sub.periodEnd,
       graceUntil: grace,
       canSell: now <= grace,

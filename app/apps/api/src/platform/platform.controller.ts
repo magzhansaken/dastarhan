@@ -5,6 +5,17 @@ import { Controller, Get, UseGuards, Req } from '@nestjs/common';
 import { PrismaService } from '../core/prisma.service';
 import { JwtGuard } from '../auth/jwt.guard';
 
+/** Приводит modules к списку кодов независимо от формата хранения. */
+function toFeatureList(modules: unknown): string[] {
+  if (Array.isArray(modules)) return modules as string[];
+  if (modules && typeof modules === 'object') {
+    return Object.entries(modules as Record<string, unknown>)
+      .filter(([, v]) => v === true)
+      .map(([k]) => k);
+  }
+  return [];
+}
+
 @Controller('platform')
 @UseGuards(JwtGuard)
 export class PlatformController {
@@ -48,7 +59,10 @@ export class PlatformController {
       locationsCount: sub.locationsCount,
       terminalsPerLocation: plan?.terminalsPerLocation ?? 1,
       // modules хранится как Json — список кодов функций тарифа
-      features: (plan?.modules as string[]) ?? [],
+      // modules хранится как Json и может быть объектом {ai:true}
+      // или массивом кодов — приводим к массиву, чтобы касса
+      // одинаково проверяла доступность функций
+      features: toFeatureList(plan?.modules),
       canSell,
       reportsOpen: paid,
       daysLeft: Math.max(0, Math.ceil((grace.getTime() - now.getTime()) / 86400_000)),
