@@ -33,6 +33,17 @@ export class ExportController {
       orderBy: { closedAt: 'asc' },
     });
 
+    const pays = await this.prisma.payment.findMany({
+      where: { orderId: { in: orders.map((o) => o.id) }, status: 'CAPTURED' },
+      select: { orderId: true, kind: true, amount: true },
+    });
+    const payBy = new Map<string, { kind: string; amount: number }[]>();
+    for (const p of pays) {
+      const arr = payBy.get(p.orderId) ?? [];
+      arr.push({ kind: p.kind, amount: p.amount });
+      payBy.set(p.orderId, arr);
+    }
+
     const payments = await this.prisma.payment.findMany({
       where: { orderId: { in: orders.map((o) => o.id) } },
       select: { orderId: true, kind: true },
@@ -170,7 +181,7 @@ export class ExportController {
 
     const orders = await this.prisma.order.findMany({
       where: { accountId: req.user.acc, status: 'CLOSED', closedAt: { gte: from, lt: to } },
-      include: { payments: true },
+      // Payment не связан с Order через relation — берём отдельно
       orderBy: { closedAt: 'asc' },
     });
 
@@ -198,7 +209,7 @@ export class ExportController {
       };
       cur.revenue += o.total;
       cur.checks++;
-      for (const p of o.payments) {
+      for (const p of payBy.get(o.id) ?? []) {
         if (p.status !== 'CAPTURED') continue;
         if (p.kind === 'CASH') cur.cash += p.amount;
         else if (p.kind === 'CARD') cur.card += p.amount;

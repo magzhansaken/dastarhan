@@ -58,6 +58,24 @@ for (const f of files)
   for (const b of readFileSync(f))
     if (b < 32 && ![9, 10, 13].includes(b)) { console.log(`символ   ${f}`); bad++; break; }
 
+// 4b. Известные ловушки: связи, которых нет, но кажется что есть.
+// Order.payments подводил четыре раза — Payment связан только по orderId
+const TRAPS = [
+  [/include:\s*\{[^}]*\bpayments\s*:/, 'Order.payments — связи нет, берите Payment отдельным запросом'],
+  [/\.payments\b(?!\s*=)/, 'обращение к o.payments — связи нет'],
+  [/where:\s*\{[^}]*\bcustomerId\s*:[^}]*\}\s*,?\s*\}\s*\)/, 'Order.customerId — поля нет, гость через DeliveryInfo'],
+];
+for (const f of files) {
+  if (!f.includes('controller')) continue;
+  const src = readFileSync(f, 'utf-8');
+  if (!/prisma\.order\./.test(src)) continue;
+  for (const [re_, msg] of TRAPS) {
+    // ищем только рядом с prisma.order
+    const near = src.split('prisma.order').slice(1).join('\n').slice(0, 4000);
+    if (re_.test(near)) { console.log(`ловушка  ${f} — ${msg}`); bad++; break; }
+  }
+}
+
 // 5. Баланс скобок: перекос ломает структуру класса
 for (const f of files) {
   const src = readFileSync(f, 'utf-8');
