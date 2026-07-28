@@ -9,6 +9,7 @@ import {
 import { IsArray, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { PrismaService } from '../core/prisma.service';
 import { JwtGuard } from '../auth/jwt.guard';
+import { PermissionsGuard, RequirePermission } from '../auth/permissions.guard';
 
 class TechCardLineDto {
   @IsString() componentId!: string;
@@ -381,6 +382,9 @@ export class MenuController {
         productId: dto.productId,
         reason: dto.reason.trim(),
         remainingQty: (dto.remainingQty ?? null) as any,
+        // Кто поставил в стоп — обязательно: через час никто
+        // не помнит, к кому идти с вопросом
+        createdBy: req.user.sub,
       },
     });
     return { ok: true, created: true };

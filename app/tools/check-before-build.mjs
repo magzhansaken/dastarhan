@@ -76,6 +76,17 @@ for (const f of files) {
   }
 }
 
+// 4c. Декораторы без импорта: @RequirePermission и @UseGuards
+for (const f of files) {
+  const src = readFileSync(f, 'utf-8');
+  if (/@RequirePermission\(/.test(src) && !/import .*RequirePermission/.test(src)) {
+    console.log(`импорт   ${f} — RequirePermission не импортирован`); bad++;
+  }
+  if (/@UseGuards\([^)]*PermissionsGuard/.test(src) && !/import .*PermissionsGuard/.test(src)) {
+    console.log(`импорт   ${f} — PermissionsGuard не импортирован`); bad++;
+  }
+}
+
 // 5. Баланс скобок: перекос ломает структуру класса
 for (const f of files) {
   const src = readFileSync(f, 'utf-8');
