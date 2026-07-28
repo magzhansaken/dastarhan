@@ -280,6 +280,55 @@ export class StockController {
     return { posted: true, id: doc.id, lines: doc.lines.length, type: doc.type };
   }
 
+  /**
+   * История цен товара: прошлая цена подсказкой при вводе накладной.
+   * Кладовщик видит «было 2 500 ₸» и замечает подорожание сразу,
+   * а не через месяц, когда маржа уже просела.
+   */
+  @Get('price-history')
+  @RequirePermission('stock.supply')
+  async priceHistory(
+    @Query('productId') productId: string,
+    @Req() req: any,
+  ) {
+    const moves = await this.prisma.stockMovement.findMany({
+      where: { accountId: req.user.acc, productId, qtyDelta: { gt: 0 } },
+      orderBy: { at: 'desc' },
+      take: 12,
+      select: { unitCost: true, at: true },
+    });
+
+    if (!moves.length) return { productId, lastPrice: null, points: [], trend: null };
+
+    const last = moves[0];
+    const prev = moves.find((m) => m.unitCost !== last.unitCost);
+    const growth = prev && prev.unitCost > 0
+      ? Math.round(((last.unitCost - prev.unitCost) / prev.unitCost) * 100)
+      : 0;
+
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId }, select: { name: true, unit: true },
+    });
+
+    return {
+      productId,
+      name: product?.name ?? null,
+      unit: product?.unit ?? null,
+      lastPrice: last.unitCost,
+      lastAt: last.at,
+      // Точки для графика: от старых к новым, как читается слева направо
+      points: moves.slice().reverse().map((m) => ({ price: m.unitCost, at: m.at })),
+      growthPct: growth,
+      // Подсказка словами: цифра в графике требует разглядывания,
+      // фраза — нет
+      trend: growth >= 10
+        ? `Рост ${growth}% — себестоимость блюд вырастет`
+        : growth <= -10
+        ? `Дешевле на ${Math.abs(growth)}% — хороший момент закупиться`
+        : null,
+    };
+  }
+
   /** Открытая смена точки — касса спрашивает при старте. */
   @Get('shift/current')
   @RequirePermission('cash.shift.open')
