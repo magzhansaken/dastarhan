@@ -60,6 +60,17 @@ const KZT_NOTES: Money[] = [500_00, 1000_00, 2000_00, 5000_00, 10000_00, 20000_0
  *  и их разумные комбинации сверху. Максимум 4 кнопки. */
 export function quickTenderOptions(due: Money): Money[] {
   const out: Money[] = [due]; // «без сдачи»
+
+  // Гость редко даёт ровно одну крупную купюру. При чеке 6 500 он скорее
+  // протянет 7 000 (пятитысячная плюс две по тысяче), чем десятку.
+  // Поэтому сначала предлагаем округление вверх до сотен и тысяч —
+  // это то, что реально кладут на стойку.
+  for (const step of [100_00, 500_00, 1000_00]) {
+    const v = Math.ceil(due / step) * step;
+    if (v > due && !out.includes(v)) out.push(v);
+    if (out.length >= 4) break;
+  }
+
   for (const n of KZT_NOTES) {
     if (n >= due && !out.includes(n)) { out.push(n); }
     if (out.length >= 4) break;
