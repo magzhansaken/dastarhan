@@ -1983,3 +1983,46 @@ enum BanquetStatus {
   DONE        // провели
   CANCELLED
 }
+
+/// Перемещение между складами и точками.
+///
+/// Отличие от простого списания: у перемещения две стороны.
+/// Отправили 10 кг, доехало 9 — расхождение надо зафиксировать,
+/// пока водитель не уехал, а не через месяц при инвентаризации.
+model Transfer {
+  id           String   @id @default(cuid())
+  accountId    String
+  number       Int
+  fromWarehouseId String
+  toWarehouseId   String
+  status       TransferStatus @default(SENT)
+  sentAt       DateTime @default(now())
+  sentBy       String
+  receivedAt   DateTime?
+  receivedBy   String?
+  note         String?
+
+  lines        TransferLine[]
+
+  @@index([accountId, sentAt])
+  @@index([toWarehouseId, status])
+}
+
+model TransferLine {
+  id          String   @id @default(cuid())
+  transferId  String
+  transfer    Transfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId   String
+  sentQty     Decimal
+  /// Сколько приняли. Null — ещё не принимали
+  receivedQty Decimal?
+  unitCost    Int      @default(0)
+  note        String?
+}
+
+enum TransferStatus {
+  SENT       // отправлено, едет
+  RECEIVED   // принято полностью
+  PARTIAL    // принято с расхождением
+  CANCELLED
+}
