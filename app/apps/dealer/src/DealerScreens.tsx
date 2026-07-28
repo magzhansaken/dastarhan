@@ -358,3 +358,69 @@ export function SubDealersBlock(props: {
     </section>
   );
 }
+
+// ═══════════════ КАБИНЕТ ДИЛЕРА: ТЕКСТЫ ═══════════════
+// Дилер должен видеть три вещи: сколько заработал, что мешает
+// заработать больше, кому позвонить сегодня.
+
+export const DEALER_COPY = {
+  statusLine: (rate: number) => `аккредитован · ${rate}%`,
+  payoutDate: (d: string) => `Выплата ${d}`,
+
+  commission: {
+    title: 'Комиссия за июль',
+    // Комиссия помесячная, а не разовая при продаже — это наше отличие.
+    // Дилер живёт с клиента, пока тот платит, и заинтересован в его успехе
+    note: 'от платежей ваших клиентов',
+    rateNote: (rate: number) => `ставка ${rate}% от поступивших платежей`,
+    activeOf: (total: number) => `из ${total} заведённых`,
+  },
+
+  accumulation: {
+    title: 'Накопление комиссии',
+    period: '6 месяцев',
+    total: 'Всего за полгода',
+  },
+
+  // Ступени: чем больше активных клиентов, тем выше процент.
+  // Дилер видит, сколько осталось до следующей ставки
+  tiers: {
+    growth: 'Ставка растёт от объёма',
+    next: 'Что нужно для следующей категории',
+  },
+
+  demoStands: {
+    title: 'Стенды и кому выданы',
+    // Стенд на неделю: дилер не держит демо-аккаунты мёртвым грузом,
+    // но и не теряет доступ, если сделка затянулась
+    note: '7 дней на стенд, продление — по кнопке',
+  },
+
+  materials: {
+    title: 'Что показать владельцу',
+    note: 'обновляем сами, версии не путаются',
+    download: 'Скачать',
+  },
+
+  accreditation: {
+    confirmed: 'Аккредитация подтверждена',
+    contract: 'Скачать договор',
+  },
+
+  // Список клиентов, которым нужен звонок сегодня:
+  // пробный кончается, чеков нет, выручка просела
+  callList: 'Требует вашего звонка',
+} as const;
+
+/** Комиссия дилера за период. Считается от поступивших платежей, не от счетов. */
+export function dealerEarned(payments: number[], ratePct: number): number {
+  return Math.round(payments.reduce((s, p) => s + p, 0) * ratePct / 100);
+}
+
+/** Сколько активных клиентов до следующей ступени. */
+export function toNextTier(active: number, tiers: { min: number; rate: number }[]): {
+  need: number; nextRate: number;
+} | null {
+  const next = tiers.filter((t) => t.min > active).sort((a, b) => a.min - b.min)[0];
+  return next ? { need: next.min - active, nextRate: next.rate } : null;
+}
