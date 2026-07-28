@@ -404,3 +404,102 @@ export function payMethodNote(auto: boolean, deferDays = 0): string {
   if (deferDays > 0) return `Kaspi · с отсрочкой ${deferDays} дня`;
   return auto ? 'Kaspi · автоплатёж включён' : 'Kaspi · автоплатёж выключен';
 }
+
+// ═══════════════ ПУЛЬС: МЕТРИКИ БИЗНЕСА ВЕНДОРА ═══════════════
+// Владелец платформы смотрит сюда утром. Здесь не «данные»,
+// а ответ на вопрос «растём или падаем и что с этим делать».
+
+export const PULSE_METRICS = {
+  mrr: {
+    title: 'MRR сегодня',
+    growth: (pct: string) => `+${pct}% за месяц`,
+    // Сравнение в деньгах, а не только в процентах: «+6,1%» ни о чём
+    // не говорит, «+254 000 ₸» — говорит
+    delta: (month: string, sum: string) => `к ${month} · ${sum}`,
+  },
+  newClients: {
+    title: 'Новых за июль',
+    prev: (pct: string, month: string) => `было ${pct}% в ${month}`,
+  },
+  chart: {
+    title: 'MRR по месяцам',
+    note: 'оранжевый — июль',
+  },
+  activation: {
+    // Главная метрика SaaS: зарегистрировался ≠ начал пользоваться.
+    // Считаем тех, кто дошёл до первого чека
+    note: 'кто дошёл до первого чека',
+  },
+  arpu: {
+    note: 'растёт от числа точек',
+  },
+  ltv: {
+    title: 'Срок жизни клиента',
+    note: 'считаем с первого платежа',
+  },
+  byPlan: {
+    title: 'MRR по тарифам',
+  },
+} as const;
+
+/** Сводка риска оттока для баннера на пульсе. */
+export function churnRiskSummary(offline: number, noReceipts: number, revenueDown: number): string {
+  const total = offline + noReceipts + revenueDown;
+  return `${total} клиентов с сигналами ухода: ${offline} не в сети, ` +
+    `${noReceipts} без чеков, ${revenueDown} с просевшей выручкой.`;
+}
+
+export const CHURN_LINK = 'Открыть «Здоровье клиентов» →';
+
+// ═══════════════ КАРТОЧКА КЛИЕНТА ═══════════════
+
+export const CLIENT_CARD = {
+  search: 'Поиск по названию или БИН',
+  colIncome: 'Доход / мес',
+  colActivity: 'Активность',
+  planLine: (plan: string, price: string) => `${plan} · ${price} / точка`,
+  incomeMonth: 'Доход в месяц',
+  paidTotal: 'Всего заплатил',
+  // Сводка одной строкой: менеджеру не нужно открывать три вкладки,
+  // чтобы понять, живой клиент или нет
+  staffSummary: (users: number, roles: number, lastShift: string) =>
+    `${users} сотрудников · ${roles} роли · последняя смена закрыта ${lastShift}`,
+  actionsLog: 'Лог действий',
+} as const;
+
+/** Действия менеджера над клиентом. Порядок от мягкого к жёсткому. */
+export const CLIENT_ACTIONS = [
+  { id: 'extend', label: 'Продлить месяц' },
+  { id: 'change_plan', label: 'Сменить тариф' },
+  { id: 'grace', label: 'Дать отсрочку' },
+  { id: 'freeze', label: 'Заморозить' },
+] as const;
+
+// ═══════════════ БИЛЛИНГ ВЕНДОРА ═══════════════
+
+export const VENDOR_BILLING = {
+  issued: 'Выставлено за август',
+  avgPayDays: 'Средний срок оплаты',
+  avgPayNote: 'от выставления счёта',
+  invoices: 'Счета и оплаты',
+  // Напоминания автоматические: менеджер не должен помнить,
+  // кому и когда написать
+  reminders: 'напоминания уходят сами: за 3 дня, в день оплаты, на 3-й день просрочки',
+} as const;
+
+// ═══════════════ ПОДДЕРЖКА ═══════════════
+
+export const SUPPORT_QUEUE = {
+  title: 'Очередь поддержки',
+  sla: 'SLA: критичные 15 мин · обычные 2 часа',
+  owner: 'Кто ведёт',
+} as const;
+
+// ═══════════════ ТАРИФЫ И ФУНКЦИИ ═══════════════
+
+export const PLAN_MATRIX = {
+  title: 'Что входит в тариф',
+  // Предупреждение обязательно: одно нажатие меняет продукт
+  // у всех клиентов тарифа сразу
+  warning: 'переключатель включает функцию всем клиентам тарифа',
+} as const;
