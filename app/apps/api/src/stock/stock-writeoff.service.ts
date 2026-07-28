@@ -85,6 +85,31 @@ export class StockWriteoffService {
 
     if (!totalNeed.size) return { components: 0, skipped };
 
+    // Защита от рассогласования единиц. Техкарта, записанная в граммах,
+    // при складе в килограммах спишет 120 кг риса вместо 120 граммов —
+    // и это самая коварная ошибка учёта: всё считается верно,
+    // но в разных измерениях. Отлавливаем до записи движений.
+    const comps = await this.prisma.product.findMany({
+      where: { id: { in: [...totalNeed.keys()] } },
+      select: { id: true, name: true, unit: true },
+    });
+    const unitById = new Map(comps.map((c) => [c.id, c]));
+
+    for (const [productId, qty] of totalNeed) {
+      const c = unitById.get(productId);
+      // Порция блюда не может съедать 50 кг одного компонента.
+      // Порог намеренно высокий: банкетное блюдо на 20 человек допустимо
+      const limit = c?.unit === 'KG' || c?.unit === 'L' ? 50 : 500;
+      if (qty > limit) {
+        this.log.error(
+          `Списание остановлено: ${c?.name ?? productId} — ${qty} ${c?.unit ?? ''} ` +
+          `на заказ ${params.orderId}. Похоже, техкарта записана в граммах, ` +
+          `а склад ведётся в килограммах.`,
+        );
+        return { components: 0, skipped: params.items.length };
+      }
+    }
+
     // Одной транзакцией: движения и остатки должны меняться вместе,
     // иначе при сбое склад разъедется с историей
     await this.prisma.$transaction(async (tx) => {
