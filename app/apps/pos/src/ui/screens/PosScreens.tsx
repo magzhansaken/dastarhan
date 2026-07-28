@@ -494,3 +494,94 @@ export function PaymentScreen(props: {
     </div>
   );
 }
+
+// ═══════════════ ДЕЙСТВИЯ С ПОЗИЦИЕЙ ═══════════════
+// Контекстное меню по долгому нажатию вместо кнопок на экране.
+// Кнопки заняли бы место, которое нужнее плиткам меню,
+// а долгое нажатие кассир осваивает за одну смену.
+
+export function ItemActions(props: {
+  item: { id: string; name: string; qty: number; comment?: string | null; sentAt?: string | null };
+  openOrders: { orderId: string; number: number; tableName: string }[];
+  onComment: (text: string) => void;
+  onMove: (toOrderId: string) => void;
+  onRemove: () => void;
+  onClose: () => void;
+}) {
+  const [mode, setMode] = useState<'menu' | 'comment' | 'move'>('menu');
+  const [text, setText] = useState(props.item.comment ?? '');
+  const sent = !!props.item.sentAt;
+
+  // Частые комментарии кнопками: набирать «без лука» на сенсорном
+  // экране в час пик — потерянные секунды на каждом заказе
+  const QUICK = ['без лука', 'без соли', 'острое', 'не острое', 'отдельно', 'с собой'];
+
+  return (
+    <div className="sheet-backdrop" onClick={props.onClose}>
+      <div className="sheet" onClick={(e) => e.stopPropagation()}>
+        <header className="sheet-head">
+          <b>{props.item.name}</b>
+          <span>×{props.item.qty}</span>
+        </header>
+
+        {mode === 'menu' && (
+          <div className="sheet-actions">
+            <button className="sheet-btn" disabled={sent}
+              onClick={() => setMode('comment')}>
+              Комментарий
+              {sent && <em>уже на кухне</em>}
+            </button>
+            <button className="sheet-btn" onClick={() => setMode('move')}>
+              Перенести на другой стол
+            </button>
+            <button className="sheet-btn danger" onClick={props.onRemove}>
+              Удалить позицию
+            </button>
+          </div>
+        )}
+
+        {mode === 'comment' && (
+          <div className="sheet-body">
+            <div className="quick-tags">
+              {QUICK.map((q) => (
+                <button key={q} className="quick-tag"
+                  onClick={() => setText(text ? `${text}, ${q}` : q)}>
+                  {q}
+                </button>
+              ))}
+            </div>
+            <input className="sheet-input" value={text} autoFocus
+              placeholder="Что сказать повару"
+              onChange={(e) => setText(e.target.value)} />
+            <div className="sheet-foot">
+              <button className="btn" onClick={() => setMode('menu')}>Назад</button>
+              <button className="btn btn-accent" onClick={() => props.onComment(text)}>
+                Сохранить
+              </button>
+            </div>
+          </div>
+        )}
+
+        {mode === 'move' && (
+          <div className="sheet-body">
+            {!props.openOrders.length && (
+              <p className="hint">Других открытых столов нет</p>
+            )}
+            <div className="move-list">
+              {props.openOrders.map((o) => (
+                <button key={o.orderId} className="move-row"
+                  onClick={() => props.onMove(o.orderId)}>
+                  <b>{o.tableName}</b>
+                  <span>заказ №{o.number}</span>
+                </button>
+              ))}
+            </div>
+            <div className="sheet-foot">
+              <button className="btn" onClick={() => setMode('menu')}>Назад</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

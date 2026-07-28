@@ -724,3 +724,86 @@ body {
   .pos-table { min-height: 80px; padding: 10px 12px; }
   .pos-table b { font-size: 19px; }
 }
+
+/* ══════════ ДЕЙСТВИЯ С ПОЗИЦИЕЙ ══════════
+   Шторка снизу, а не модальное окно по центру: большой палец
+   держит планшет снизу, туда же и тянется. */
+
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: flex-end; justify-content: center;
+  background: rgba(8, 10, 14, .62);
+  backdrop-filter: blur(3px);
+  animation: fade .12s ease;
+}
+@keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+.sheet {
+  width: 100%; max-width: 520px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 20px 20px 0 0;
+  padding: 18px 18px calc(18px + env(safe-area-inset-bottom));
+  animation: rise .16s cubic-bezier(.2, .8, .3, 1);
+}
+@keyframes rise { from { transform: translateY(24px) } to { transform: none } }
+
+.sheet-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 14px; margin-bottom: 14px;
+  border-bottom: 1px solid var(--hairline);
+}
+.sheet-head b { font-size: 19px; font-weight: 650; letter-spacing: -.01em; }
+.sheet-head span { font-size: 15px; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+.sheet-actions { display: flex; flex-direction: column; gap: 8px; }
+
+/* 56 px — минимальная цель касания на кассе: кассир работает
+   мокрыми руками, и промах стоит открытого заказа */
+.sheet-btn {
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 56px; padding: 0 18px;
+  border: 1px solid var(--hairline); border-radius: 12px;
+  background: var(--surface-2); color: var(--text);
+  font-size: 17px; font-weight: 600; text-align: left; cursor: pointer;
+}
+.sheet-btn:active { background: var(--surface-3); }
+.sheet-btn:disabled { opacity: .45; cursor: default; }
+.sheet-btn em {
+  font-style: normal; font-size: 13px; font-weight: 400; color: var(--dim);
+}
+.sheet-btn.danger { color: var(--danger); border-color: rgba(229, 72, 77, .3); }
+
+.sheet-body { display: flex; flex-direction: column; gap: 12px; }
+
+/* Частые комментарии кнопками: набирать «без лука» на сенсорном
+   экране в час пик — потерянные секунды на каждом заказе */
+.quick-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.quick-tag {
+  min-height: 40px; padding: 0 14px;
+  border: 1px solid var(--hairline); border-radius: 20px;
+  background: var(--surface-2); color: var(--text);
+  font-size: 15px; cursor: pointer;
+}
+.quick-tag:active { border-color: var(--accent); }
+
+.sheet-input {
+  width: 100%; min-height: 56px; padding: 0 16px;
+  border: 1px solid var(--hairline); border-radius: 12px;
+  background: var(--surface-2); color: var(--text); font-size: 17px;
+}
+.sheet-input:focus { outline: none; border-color: var(--accent); }
+
+.move-list { display: flex; flex-direction: column; gap: 8px; max-height: 40vh; overflow-y: auto; }
+.move-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  min-height: 56px; padding: 0 18px;
+  border: 1px solid var(--hairline); border-radius: 12px;
+  background: var(--surface-2); color: var(--text); cursor: pointer;
+}
+.move-row b { font-size: 18px; font-weight: 650; }
+.move-row span { font-size: 14px; color: var(--dim); }
+.move-row:active { border-color: var(--accent); }
+
+.sheet-foot { display: flex; gap: 10px; margin-top: 4px; }
+.sheet-foot .btn { flex: 1; min-height: 52px; }
