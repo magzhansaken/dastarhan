@@ -249,3 +249,51 @@ export function OnboardingWizard(props: {
     </div>
   );
 }
+
+// ═══════════════ ТЕХКАРТА: ТЕКСТЫ ═══════════════
+// Экран отвечает на вопрос «сколько я зарабатываю на этом блюде»,
+// а не «из чего оно состоит». Состав — средство, деньги — цель.
+
+export const TECHCARD_COPY = {
+  breadcrumb: (category: string) => `Меню и техкарты · ${category}`,
+  toStopList: 'В стоп-лист',
+  duplicate: 'Дублировать',
+  save: 'Сохранить техкарту',
+
+  output: 'Выход',
+  station: 'Цех',
+  menuPrice: 'Цена в меню',
+  // Полуфабрикат вкладывается как компонент: зирвак готовится партией
+  // и раскладывается по порциям — считать его каждый раз заново нельзя
+  nestSemi: 'Вложить полуфабрикат',
+
+  howTo: 'Как готовить',
+  howToNote: (date: string, who: string) =>
+    `Видит повар на KDS по кнопке «Как готовить». Обновлено ${date}, ${who}.`,
+
+  margin: 'Наценка с порции',
+  // Прогноз в порциях, а не в килограммах: повар думает порциями,
+  // и «хватит на 12 порций» понятнее, чем «осталось 1,4 кг»
+  enoughFor: 'Хватит продуктов на',
+  orderMore: (product: string) => `Заказать ${product}`,
+
+  revenue: 'Дало выручки',
+  menuPlace: 'Место в меню',
+  placeByMoney: (n: number) => `${n}-е по деньгам`,
+} as const;
+
+/** На сколько порций хватит остатка по самому дефицитному компоненту. */
+export function portionsLeft(
+  lines: { componentId: string; bruttoQty: number }[],
+  balances: Map<string, number>,
+): { portions: number; scarcest: string | null } {
+  let min = Infinity;
+  let scarcest: string | null = null;
+  for (const l of lines) {
+    if (l.bruttoQty <= 0) continue;
+    const have = balances.get(l.componentId) ?? 0;
+    const p = Math.floor(have / l.bruttoQty);
+    if (p < min) { min = p; scarcest = l.componentId; }
+  }
+  return { portions: min === Infinity ? 0 : Math.max(0, min), scarcest };
+}
