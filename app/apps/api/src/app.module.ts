@@ -21,6 +21,7 @@ import { ReportsController } from './reports/reports.controller';
 import { MenuController } from './menu/menu.controller';
 import { GuestController } from './menu/guest.controller';
 import { HallController } from './menu/hall.controller';
+import { ReservationsController } from './stock/reservations.controller';
 import { TelegramController } from './integrations/telegram.controller';
 import { KdsController } from './kds/kds.controller';
 import { BillingController } from './billing/billing.controller';
@@ -45,7 +46,7 @@ import { VerticalsController } from './verticals/verticals.controller';
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
-    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController],
+    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}

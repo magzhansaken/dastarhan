@@ -427,6 +427,7 @@ model DiningTable {
   y        Int    @default(0)
   shape    String @default("rect") // rect | round
   isActive Boolean @default(true)
+  reservations Reservation[]
   orders   Order[]
 }
 
@@ -1537,4 +1538,35 @@ model Station {
   products   Product[]
 
   @@index([locationId])
+}
+
+/// Бронь стола. Неподтверждённые брони — главная причина пустых
+/// столов в час пик: гость забронировал и не пришёл, а стол держали.
+/// Поэтому подтверждение обязательно, напоминание за 2 часа.
+model Reservation {
+  id         String   @id @default(cuid())
+  accountId  String
+  locationId String
+  tableId    String?
+  table      DiningTable? @relation(fields: [tableId], references: [id])
+  guestName  String
+  phone      String
+  guests     Int      @default(2)
+  startAt    DateTime
+  durationMin Int     @default(120)
+  status     ReservationStatus @default(NEW)
+  prepaid    Int      @default(0)   // предоплата в тиынах
+  comment    String?
+  createdAt  DateTime @default(now())
+  confirmedAt DateTime?
+
+  @@index([locationId, startAt])
+}
+
+enum ReservationStatus {
+  NEW        // создана, гость не подтвердил
+  CONFIRMED  // подтвердил по звонку или ссылке
+  SEATED     // гость сел за стол
+  NO_SHOW    // не пришёл — считаем отдельно, это потеря
+  CANCELLED
 }
