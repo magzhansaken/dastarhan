@@ -324,15 +324,24 @@ export class ReportsController {
     const from = new Date();
     from.setDate(from.getDate() - Number(days));
 
-    const orders = await this.prisma.order.findMany({
+    // Гость связан с заказом через доставку: прямого поля customerId
+    // у Order нет. Для зала гостя опознаём по бонусным операциям
+    const deliveries = await this.prisma.deliveryInfo.findMany({
+      where: { customerId: { not: null } },
+      select: { customerId: true, orderId: true },
+    });
+    const orderIds = deliveries.map((d) => d.orderId);
+    const custByOrder = new Map(deliveries.map((d) => [d.orderId, d.customerId!]));
+
+    const orders = (await this.prisma.order.findMany({
       where: {
         accountId: req.user.acc,
         status: 'CLOSED',
         closedAt: { gte: from },
-        customerId: { not: null },
+        id: { in: orderIds },
       },
-      select: { customerId: true, total: true, closedAt: true },
-    });
+      select: { id: true, total: true, closedAt: true },
+    })).map((o) => ({ ...o, customerId: custByOrder.get(o.id) ?? null }));
 
     if (orders.length < 3) {
       return {
