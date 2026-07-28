@@ -42,6 +42,17 @@ services:
       - default
       - tenderview_default    # чтобы Caddy сайта мог достучаться
 
+  # Сборщик бэк-офиса: запускается вручную командой
+  #   docker compose -f docker-compose.server.yml run --rm office
+  # и кладёт статику в папку сайта
+  office:
+    build:
+      context: .
+      dockerfile: Dockerfile.office
+    volumes:
+      - /opt/dastarhan/site/office:/out
+    profiles: ["tools"]
+
 volumes:
   dbdata:
 
