@@ -59,17 +59,33 @@ function App() {
     <CourierApp
       courierName={localStorage.getItem('dastarhan.courierName') ?? 'Курьер'}
       orders={trip.orders.map((o: any) => ({
-        orderId: o.orderId, number: o.number, address: o.address,
-        phone: o.phone, comment: o.comment, total: o.total,
-        promisedAt: o.promisedAt ? new Date(o.promisedAt) : null,
-        status: o.status,
+        orderId: o.orderId,
+        number: o.number ?? 0,
+        address: o.address ?? '',
+        phone: o.phone ?? '',
+        // Позиции заказа API пока не отдаёт — курьеру важнее адрес
+        // и сумма, состав он видит на пакете
+        items: [],
+        // Ноль означает предоплату Kaspi: у двери денег не берём
+        cashDue: o.total ?? 0,
+        comment: o.comment ?? undefined,
+        promisedAt: o.promisedAt ? new Date(o.promisedAt) : new Date(),
+        status: (o.status === 'CLOSED' ? 'DELIVERED'
+          : o.status === 'CANCELLED' ? 'RETURNED' : 'DISPATCHED') as
+          'DISPATCHED' | 'DELIVERED' | 'RETURNED',
       }))}
       trip={{
-        id: trip.tripId,
+        courierId,
+        orders: trip.orders.map((o: any) => ({
+          orderId: o.orderId,
+          status: (o.status === 'CLOSED' ? 'DELIVERED'
+            : o.status === 'CANCELLED' ? 'RETURNED' : 'DISPATCHED') as any,
+          cashDue: o.total ?? 0,
+        })),
         cashCollected: trip.cashCollected,
         cashReturned: trip.cashReturned,
-        orders: trip.orders,
-      } as any}
+        closed: false,
+      }}
       now={now}
       online={online}
       onDelivered={(orderId) => post('delivered', { orderId, cashTaken: 0 })}
