@@ -367,4 +367,124 @@ export class AdminController {
       rows,
     };
   }
+
+  /**
+   * Очередь поддержки. Сортировка по сроку SLA, а не по дате создания:
+   * критичный тикет часовой давности важнее обычного вчерашнего.
+   */
+  @Get('tickets')
+  async tickets(@Query('status') status?: string) {
+    const rows = await this.prisma.ticket.findMany({
+      where: status ? { status: status as any } : { status: { notIn: ['RESOLVED', 'CLOSED'] } },
+      orderBy: { dueAt: 'asc' },
+      take: 100,
+    });
+
+    const accounts = await this.prisma.account.findMany({
+      where: { id: { in: rows.map((r) => r.accountId).filter(Boolean) as string[] } },
+      select: { id: true, name: true },
+    });
+    const nameBy = new Map(accounts.map((a) => [a.id, a.name]));
+    const now = Date.now();
+
+    return {
+      // SLA прямо в шапке: менеджер должен помнить нормативы,
+      // не открывая инструкцию
+      sla: 'SLA: критичные 15 мин · обычные 2 часа',
+      rows: rows.map((r) => {
+        const overdue = r.dueAt ? r.dueAt.getTime() < now : false;
+        return {
+          id: r.id,
+          clientName: nameBy.get(r.accountId ?? '') ?? '—',
+          subject: r.subject,
+          body: r.body,
+          priority: r.priority,
+          status: r.status,
+          createdAt: r.createdAt,
+          dueAt: r.dueAt,
+          overdue,
+          // Просрочка минутами, а не «просрочен»: 5 минут и 3 часа —
+          // разные разговоры с клиентом
+          overdueMin: overdue && r.dueAt
+            ? Math.floor((now - r.dueAt.getTime()) / 60000) : 0,
+        };
+      }),
+    };
+  }
+
+  /** Ответ клиенту в тикете. */
+  @Post('tickets/:id/reply')
+  async reply(@Param('id') id: string, @Body() dto: { text: string; close?: boolean }) {
+    const ticket = await this.prisma.ticket.findUnique({ where: { id } });
+    if (!ticket) return { ok: false, code: 'TICKET_NOT_FOUND' };
+
+    await this.prisma.ticket.update({
+      where: { id },
+      data: {
+        status: dto.close ? 'RESOLVED' : 'IN_PROGRESS',
+        ...(dto.close ? { resolvedAt: new Date() } : {}),
+      },
+    });
+
+    // Ответ пишем событием: переписка должна сохраниться целиком,
+    // иначе при споре нечего показать
+    await this.prisma.eventLog.create({
+      data: {
+        eventId: `ticket-reply-${id}-${Date.now()}`,
+        accountId: ticket.accountId ?? '',
+        terminalId: null,
+        type: 'support.reply',
+        payload: { ticketId: id, text: dto.text },
+        createdAt: new Date(),
+      },
+    }).catch(() => null);
+
+    return { ok: true, status: dto.close ? 'RESOLVED' : 'IN_PROGRESS' };
+  }
+
+  /**
+   * Матрица тариф × функция. Изменение применяется к новым платежам,
+   * а не сразу: клиент не должен потерять функцию посреди
+   * оплаченного месяца.
+   */
+  @Get('plan-matrix')
+  async planMatrix() {
+    const plans = await this.prisma.plan.findMany({
+      where: { isActive: true },
+      orderBy: { pricePerLocationMonth: 'asc' },
+    });
+
+    const subs = await this.prisma.subscription.findMany({
+      where: { status: { in: ['ACTIVE', 'TRIAL'] } },
+      select: { planId: true, locationsCount: true },
+    });
+
+    return {
+      warning: 'переключатель включает функцию всем клиентам тарифа',
+      note: 'меняется без релиза, применяется к новым платежам',
+      plans: plans.map((p) => {
+        const mine = subs.filter((s) => s.planId === p.id);
+        return {
+          id: p.id,
+          code: p.code,
+          name: p.name,
+          price: p.pricePerLocationMonth,
+          terminalsPerLocation: p.terminalsPerLocation,
+          modules: p.modules,
+          clientsCount: mine.length,
+          // MRR тарифа: видно, какой тариф кормит платформу
+          mrr: mine.reduce((s, x) => s + p.pricePerLocationMonth * Math.max(1, x.locationsCount), 0),
+        };
+      }),
+    };
+  }
+
+  /** Включение функции в тарифе. */
+  @Patch('plans/:id/modules')
+  async setModules(@Param('id') id: string, @Body() dto: { modules: string[] }) {
+    await this.prisma.plan.update({
+      where: { id }, data: { modules: dto.modules as any },
+    });
+    return { ok: true, modules: dto.modules };
+  }
 }
