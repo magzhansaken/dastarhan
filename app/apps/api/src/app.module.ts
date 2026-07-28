@@ -30,6 +30,11 @@ import { DealerController } from './dealer/dealer.controller';
 import { TelegramController } from './integrations/telegram.controller';
 import { AggregatorsController } from './integrations/aggregators.controller';
 import { ExportController } from './reports/export.controller';
+import { TransferController } from './stock/transfer.controller';
+import { ProductionController } from './stock/production.controller';
+import { InventoryController } from './stock/inventory.controller';
+import { AttendanceController } from './staff/attendance.controller';
+import { TipsController } from './cash/tips.controller';
 import { BackupController } from './core/backup.controller';
 import { AuditController } from './staff/audit.controller';
 import { PromoController } from './menu/promo.controller';
@@ -58,7 +63,7 @@ import { VerticalsController } from './verticals/verticals.controller';
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
-    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController, StaffController, DealerController, SupplyController, ButcheringController, DepositsController, AggregatorsController, ExportController, ScalesController, AuditController, BackupController, ModifiersController, PromoController],
+    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController, StaffController, DealerController, SupplyController, ButcheringController, DepositsController, AggregatorsController, ExportController, ScalesController, AuditController, BackupController, ModifiersController, PromoController, AttendanceController, InventoryController, ProductionController, TipsController, TransferController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}
