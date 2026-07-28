@@ -24,7 +24,10 @@ export class MenuController {
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.product.findMany({
-        where: { isDeleted: false },
+        // Только то, что продаётся: блюда, товары и услуги.
+        // Ингредиенты и полуфабрикаты нужны складу, но кассиру
+        // на плитках они только мешают — их там быть не должно.
+        where: { isDeleted: false, type: { in: ['DISH', 'GOODS', 'SERVICE'] } },
         select: {
           id: true, name: true, nameKk: true, categoryId: true, type: true,
           basePrice: true, unit: true, isWeighted: true, imageUrl: true,

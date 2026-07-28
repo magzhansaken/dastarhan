@@ -530,3 +530,73 @@ body {
 .shift-diff b { font-size: 44px; }
 .shift-diff.diff-pos b { color: var(--ok); }
 .shift-diff.diff-neg b { color: var(--danger); }
+
+/* ══════════ АДАПТИВ: касса на телефоне ══════════
+   Экран рассчитан на планшет 1366×768. На узком телефоне
+   две колонки не помещаются — переводим в вертикальную раскладку:
+   меню сверху, чек снизу липким подвалом. */
+@media (max-width: 820px) {
+  .order-screen {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* Меню занимает основную площадь и скроллится */
+  .catalog-pane {
+    order: 1;
+    overflow-y: auto;
+    padding-bottom: 8px;
+  }
+
+  /* Чек внизу: компактный, но всегда виден */
+  .check-pane {
+    order: 2;
+    border-right: none;
+    border-top: 1px solid var(--hairline);
+    max-height: 42vh;
+    overflow-y: auto;
+  }
+
+  .check-head {
+    height: auto;
+    min-height: 44px;
+    padding: 8px 14px;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 13px;
+  }
+
+  .ch-badges { flex-wrap: wrap; gap: 6px; }
+  .ch-cashier { flex-wrap: wrap; gap: 6px; font-size: 13px; }
+
+  /* Плитки в две колонки — палец попадает уверенно */
+  .tiles {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .tile { min-height: 78px; padding: 10px 12px; }
+  .tile-name { font-size: 14px; line-height: 1.25; }
+  .tile-price { font-size: 15px; }
+
+  .check-items { padding: 0 12px; }
+  .check-item { padding: 8px 0; font-size: 14px; }
+  .check-total { font-size: 26px; }
+
+  .catalog-top { padding: 10px 12px 0; }
+  .cat-strip { gap: 6px; }
+  .cat { height: 34px; padding: 0 12px; font-size: 13px; }
+
+  .pay-btn { min-height: 52px; font-size: 17px; }
+  .pay-extra { gap: 6px; }
+  .pay-extra-btn { min-height: 40px; font-size: 13px; }
+}
+
+/* Совсем узкие экраны */
+@media (max-width: 400px) {
+  .tiles { grid-template-columns: repeat(2, 1fr); gap: 6px; }
+  .tile { min-height: 70px; }
+  .check-pane { max-height: 38vh; }
+}
