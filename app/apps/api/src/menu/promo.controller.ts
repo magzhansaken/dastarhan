@@ -55,7 +55,10 @@ export class PromoController {
       },
     });
 
-    const applied = [];
+    const applied: {
+      promoId: string; name: string; type: string;
+      discount: number; explain: string;
+    }[] = [];
     for (const p of promos) {
       const cfg = p.config as any;
       const res = this.apply(p.type, cfg, dto.items, dto.total, now);
@@ -203,7 +206,7 @@ export class PromoController {
     // Эффективность: сколько раз сработала и на какую сумму.
     // Акция без применений — либо про неё не знают, либо условия
     // невыполнимы. И то и другое надо чинить
-    const out = [];
+    const out: any[] = [];
     for (const p of rows) {
       const uses = await this.prisma.promoUse.count({ where: { promoId: p.id } })
         .catch(() => 0);

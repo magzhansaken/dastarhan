@@ -38,16 +38,18 @@ export class ModifiersController {
   async forProduct(@Query('productId') productId: string) {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
+      // Product связан с группами через промежуточную таблицу
       include: {
         modifierGroups: {
-          include: { options: { orderBy: { priceDelta: 'asc' } } },
+          include: { group: { include: { options: { orderBy: { priceDelta: 'asc' } } } } },
         },
       },
     }).catch(() => null);
 
     if (!product) throw new NotFoundException({ code: 'PRODUCT_NOT_FOUND' });
 
-    const groups = (product as any).modifierGroups ?? [];
+    // Разворачиваем промежуточную таблицу в сами группы
+    const groups = ((product as any).modifierGroups ?? []).map((pg: any) => pg.group).filter(Boolean);
 
     return groups
       .filter((g: any) => !g.isDeleted)
@@ -87,11 +89,12 @@ export class ModifiersController {
   ) {
     const product = await this.prisma.product.findUnique({
       where: { id: dto.productId },
-      include: { modifierGroups: { include: { options: true } } },
+      include: { modifierGroups: { include: { group: { include: { options: true } } } } },
     }).catch(() => null);
     if (!product) throw new NotFoundException({ code: 'PRODUCT_NOT_FOUND' });
 
-    const groups = ((product as any).modifierGroups ?? []).filter((g: any) => !g.isDeleted);
+    const groups = ((product as any).modifierGroups ?? [])
+      .map((pg: any) => pg.group).filter((g: any) => g && !g.isDeleted);
     const selBy = new Map(dto.selected.map((s) => [s.groupId, s.optionIds]));
 
     const errors: string[] = [];

@@ -125,9 +125,22 @@ export class BackupController {
     from.setDate(from.getDate() - 90);
     const orders = await this.prisma.order.findMany({
       where: { accountId: acc, closedAt: { gte: from } },
-      include: { items: true, payments: true },
+      include: { items: true },
       take: 20000,
     });
+
+    // Payment связан с Order только по orderId, без relation —
+    // подтягиваем отдельным запросом
+    const payments = await this.prisma.payment.findMany({
+      where: { orderId: { in: orders.map((o) => o.id) } },
+      select: { orderId: true, kind: true, amount: true },
+    });
+    const payBy = new Map<string, { kind: string; amount: number }[]>();
+    for (const p of payments) {
+      const arr = payBy.get(p.orderId) ?? [];
+      arr.push({ kind: p.kind, amount: p.amount });
+      payBy.set(p.orderId, arr);
+    }
 
     return {
       ...base,
@@ -138,7 +151,7 @@ export class BackupController {
         items: o.items.map((i) => ({
           name: i.nameSnapshot, qty: i.qty, unitPrice: i.unitPrice,
         })),
-        payments: o.payments.map((p) => ({ kind: p.kind, amount: p.amount })),
+        payments: payBy.get(o.id) ?? [],
       })),
       note: 'Продажи за 90 дней. Для полной истории обратитесь в поддержку',
     };
@@ -173,12 +186,20 @@ export class BackupController {
     }
 
     // Закрытые заказы без оплаты: деньги взяли, а платёж не записали
-    const unpaidClosed = await this.prisma.order.count({
-      where: {
-        accountId: acc, status: 'CLOSED', total: { gt: 0 },
-        payments: { none: { status: 'CAPTURED' } },
-      },
+    // Заказы без оплаты ищем сопоставлением: связи payments
+    // у Order нет, поэтому берём id оплаченных и вычитаем
+    const closedOrders = await this.prisma.order.findMany({
+      where: { accountId: acc, status: 'CLOSED', total: { gt: 0 } },
+      select: { id: true },
+      take: 5000,
     });
+    const paidIds = new Set(
+      (await this.prisma.payment.findMany({
+        where: { orderId: { in: closedOrders.map((o) => o.id) }, status: 'CAPTURED' },
+        select: { orderId: true },
+      })).map((p) => p.orderId),
+    );
+    const unpaidClosed = closedOrders.filter((o) => !paidIds.has(o.id)).length;
     if (unpaidClosed > 0) {
       issues.push({
         level: 'error',

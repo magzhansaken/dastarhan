@@ -305,8 +305,13 @@ export class TransferController {
       include: { lines: true },
     });
 
+    // Точки аккаунта: у Warehouse нет связи location, только locationId
+    const locations = await this.prisma.location.findMany({
+      where: { accountId: req.user.acc },
+      select: { id: true },
+    });
     const warehouses = await this.prisma.warehouse.findMany({
-      where: { location: { accountId: req.user.acc } },
+      where: { locationId: { in: locations.map((l) => l.id) } },
       select: { id: true, name: true, locationId: true },
     });
     const whBy = new Map(warehouses.map((w) => [w.id, w]));
