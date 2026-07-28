@@ -65,10 +65,34 @@ export class BillingController {
     const daysLeft = Math.max(0,
       Math.ceil((sub.periodEnd.getTime() - now.getTime()) / 86400_000));
 
+    const now = new Date();
+    const grace = new Date(sub.periodEnd);
+    grace.setDate(grace.getDate() + (sub.graceDays ?? 7));
+
+    // Три состояния экрана из макета: оплачено, скоро истекает,
+    // просрочено. Каждое со своим тоном — при просрочке не пугаем,
+    // а напоминаем, что касса продолжает работать
+    const screenState =
+      now > grace ? 'suspended'
+      : now > sub.periodEnd ? 'overdue'
+      : daysLeftOf(sub.periodEnd) <= 5 ? 'soon'
+      : 'paid';
+
+    function daysLeftOf(d: Date) {
+      return Math.ceil((d.getTime() - now.getTime()) / 86400_000);
+    }
+
     return {
       plan: plan?.code ?? null,
       planName: plan?.name ?? null,
       status: sub.status,
+      screenState,
+      stateMessage:
+        screenState === 'paid' ? 'Всё оплачено — работайте спокойно'
+        : screenState === 'soon' ? 'Подписка заканчивается — продлите, чтобы отчёты остались открыты'
+        : screenState === 'overdue' ? 'Касса работает, отчёты откроются после оплаты'
+        : 'Grace-период закончился — касса в режиме только чтения',
+      graceUntil: grace,
       periodEnd: sub.periodEnd,
       daysLeft,
       lines: [
@@ -142,6 +166,46 @@ export class BillingController {
       periodEnd: result.updated.periodEnd,
       months,
       message: `Оплачено до ${result.updated.periodEnd.toLocaleDateString('ru-RU')}`,
+    };
+  }
+
+  /**
+   * Закрывающие документы: счёт, акт, накладная.
+   * Бухгалтеру клиента они нужны в тот же день, а не в конце месяца —
+   * иначе платёж зависает в подвешенном состоянии.
+   */
+  @Get('documents')
+  async documents(@Req() req: any) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { accountId: req.user.acc },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!sub) return { entity: null, documents: [] };
+
+    const payments = await this.prisma.subPayment.findMany({
+      where: { subId: sub.id },
+      orderBy: { at: 'desc' },
+      take: 24,
+    });
+
+    return {
+      // Реквизиты получателя видны до оплаты: бухгалтер должен знать,
+      // на кого платит, а не спрашивать по телефону
+      entity: process.env.BILLING_ENTITY ?? 'ИП Смагулов Е.',
+      note: `Оплата уходит на ${process.env.BILLING_ENTITY ?? 'ИП Смагулов Е.'}. Закрывающие документы придут на почту сразу.`,
+      documents: payments.map((p) => ({
+        paymentId: p.id,
+        at: p.at,
+        amount: p.amount,
+        method: p.method,
+        period: `${p.periodFrom.toLocaleDateString('ru-RU')} — ${p.periodTo.toLocaleDateString('ru-RU')}`,
+        // Три документа на каждый платёж — то, что просит бухгалтерия
+        files: [
+          { kind: 'invoice', label: 'Счёт на оплату' },
+          { kind: 'act', label: 'Акт выполненных работ' },
+          { kind: 'receipt', label: 'Квитанция' },
+        ],
+      })),
     };
   }
 
