@@ -6,6 +6,7 @@ import './platform.css';
 import { Dashboard } from './screens/BackofficeScreens';
 import { OnboardingWizard, ONB_STEPS } from './onboarding/OnboardingWizard';
 import { ChecksScreen, AbcScreen, SalaryScreen, CashFlowScreen } from './reports/ReportScreens';
+import { HallEditor } from './screens/HallEditor';
 
 const API = '/api/v1';
 const TOKEN = 'dastarhan.office.token';
@@ -236,6 +237,7 @@ const TABS = [
   { id: 'abc', title: 'Что кормит бизнес' },
   { id: 'money', title: 'Куда ушли деньги' },
   { id: 'salary', title: 'Зарплата' },
+  { id: 'hall', title: 'Карта зала' },
   { id: 'stock', title: 'Склад' },
   { id: 'profit', title: 'Прибыль' },
   { id: 'setup', title: 'Мастер настройки' },
@@ -301,6 +303,10 @@ function Office({ token, onOut }: { token: string; onOut: () => void }) {
         {tab === 'salary' && (
           <Report token={token} path="payroll"
             render={(rows) => <SalaryScreen rows={rows} periodLabel="За месяц" />} />
+        )}
+        {tab === 'hall' && (
+          <HallEditor token={token}
+            locationId={localStorage.getItem('dastarhan.locationId') ?? ''} />
         )}
         {tab === 'stock' && <StockView token={token} />}
         {tab === 'profit' && <ProfitView token={token} />}

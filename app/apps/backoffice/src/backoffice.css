@@ -754,3 +754,80 @@ input[type="checkbox"] { height: auto; width: auto; accent-color: var(--accent);
 .onb-finish p { color: var(--ok-deep); font-weight: 650; }
 .onb-foot { text-align: right; }
 .onb-later { border-top: 1px solid var(--line); padding-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+
+/* ══════════ РЕДАКТОР КАРТЫ ЗАЛА ══════════
+   Два режима: рабочий — официант видит занятость, режим правки —
+   владелец двигает столы. Разделены явно, чтобы стол не уехал
+   случайным движением в час пик. */
+
+.hall-editor { display: flex; flex-direction: column; gap: 14px; }
+
+.hall-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap;
+}
+.hall-tabs { display: flex; gap: 8px; }
+.hall-tab {
+  display: flex; align-items: baseline; gap: 8px;
+  height: 40px; padding: 0 16px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--card); color: var(--text);
+  font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.hall-tab.on { background: var(--text); color: #fff; border-color: var(--text); }
+.hall-tab em { font-size: 13px; font-style: normal; opacity: .6; }
+
+.hall-acts { display: flex; align-items: center; gap: 10px; }
+
+/* Холст: сетка видна только в режиме правки — в рабочем она
+   отвлекает от главного, занятости столов */
+.hall-canvas {
+  position: relative; min-height: 520px;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 16px; overflow: hidden;
+}
+.hall-canvas.editing {
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 20px 20px;
+  cursor: grab;
+}
+
+.hall-table {
+  position: absolute;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 88px; height: 88px; padding: 6px;
+  background: var(--card); border: 2px solid var(--line);
+  color: var(--text); user-select: none;
+  transition: border-color .12s, background .12s;
+}
+.hall-table.round { border-radius: 50%; }
+.hall-table.square { border-radius: 12px; }
+.hall-table.rect { border-radius: 12px; width: 132px; }
+
+.hall-table b { font-size: 20px; font-weight: 700; line-height: 1; }
+.hall-table .seats { font-size: 12px; color: var(--dim); }
+
+/* Свободный — спокойный, занятый — акцент, долгий — предупреждение.
+   Красный не используем: занятый стол не проблема */
+.hall-table.free { border-color: var(--line); }
+.hall-table.busy { border-color: var(--accent); background: var(--accent-soft, #fdf1e7); }
+.hall-table.long { border-color: var(--warn, #f5b93e); background: #fff8e8; }
+.hall-table.sel { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.hall-canvas.editing .hall-table { cursor: grab; }
+.hall-canvas.editing .hall-table:active { cursor: grabbing; }
+
+.tbl-info {
+  display: flex; flex-direction: column; align-items: center;
+  margin-top: 2px; font-size: 12px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.tbl-info em { font-style: normal; font-weight: 400; color: var(--dim); }
+
+.hall-panel {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 12px;
+}
