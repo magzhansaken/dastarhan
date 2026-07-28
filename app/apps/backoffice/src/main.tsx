@@ -5,6 +5,7 @@ import './backoffice.css';
 import './platform.css';
 import { Dashboard } from './screens/BackofficeScreens';
 import { OnboardingWizard, ONB_STEPS } from './onboarding/OnboardingWizard';
+import { ChecksScreen, AbcScreen, SalaryScreen, CashFlowScreen } from './reports/ReportScreens';
 
 const API = '/api/v1';
 const TOKEN = 'dastarhan.office.token';
@@ -146,6 +147,40 @@ function ProfitView({ token }: { token: string }) {
   );
 }
 
+// ═══════════════ ОТЧЁТЫ ═══════════════
+// Каждый отчёт отвечает на один вопрос владельца.
+// Данные грузятся при открытии вкладки, а не все сразу:
+// пять запросов на входе тормозят дашборд, ради которого и заходят.
+
+function Report({ token, path, render }: {
+  token: string; path: string; render: (rows: any) => React.ReactNode;
+}) {
+  const [rows, setRows] = useState<any>(null);
+  const [err, setErr] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/reports/${path}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d !== null ? setRows(d) : setErr(true))
+      .catch(() => setErr(true));
+  }, [token, path]);
+
+  if (err) return (
+    <div className="state-empty">
+      <b>Не удалось загрузить отчёт</b>
+      <span>Проверьте связь и обновите страницу</span>
+    </div>
+  );
+  if (!rows) return <div className="label-mono">Считаем…</div>;
+  if (Array.isArray(rows) && !rows.length) return (
+    <div className="state-empty">
+      <b>Пока нет данных</b>
+      <span>Отчёт появится после первых продаж</span>
+    </div>
+  );
+  return <>{render(rows)}</>;
+}
+
 // ═══════════════ МАСТЕР НАСТРОЙКИ ═══════════════
 // Открывается сразу после регистрации: владелец обещали первый чек
 // за 15 минут, значит путь не должен обрываться на пустом дашборде.
@@ -197,6 +232,10 @@ function Wizard({ token, accountName, onDone }: {
 
 const TABS = [
   { id: 'dash', title: 'Как идут дела' },
+  { id: 'checks', title: 'Чеки за день' },
+  { id: 'abc', title: 'Что кормит бизнес' },
+  { id: 'money', title: 'Куда ушли деньги' },
+  { id: 'salary', title: 'Зарплата' },
   { id: 'stock', title: 'Склад' },
   { id: 'profit', title: 'Прибыль' },
   { id: 'setup', title: 'Мастер настройки' },
@@ -246,6 +285,22 @@ function Office({ token, onOut }: { token: string; onOut: () => void }) {
           : dash ? <Dashboard data={{ ...dash, byHour: hours?.hours ?? [], peakHour: hours?.peakHour }}
               period={period} onPeriod={setPeriod} onReport={() => {}} />
           : <div className="label-mono">Загружаем…</div>
+        )}
+        {tab === 'checks' && (
+          <Report token={token} path="checks"
+            render={(rows) => <ChecksScreen rows={rows} periodLabel="За сегодня" />} />
+        )}
+        {tab === 'abc' && (
+          <Report token={token} path="abc"
+            render={(rows) => <AbcScreen rows={rows} periodLabel="За 30 дней" positionsCount={rows.length} />} />
+        )}
+        {tab === 'money' && (
+          <Report token={token} path="../finance/cashflow"
+            render={(d) => <CashFlowScreen data={d} periodLabel="За 30 дней" />} />
+        )}
+        {tab === 'salary' && (
+          <Report token={token} path="payroll"
+            render={(rows) => <SalaryScreen rows={rows} periodLabel="За месяц" />} />
         )}
         {tab === 'stock' && <StockView token={token} />}
         {tab === 'profit' && <ProfitView token={token} />}
