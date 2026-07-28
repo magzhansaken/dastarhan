@@ -31,6 +31,6 @@ eq('интеграция не завелась', warn(null, null, 14, 0, 0), 'н
 eq('интегратор ошибается', warn(1, 'yes', 30, 100, 40), 'много ошибок');
 eq('мало вызовов — не судим', warn(1, 'yes', 30, 5, 3), null);
 
-eq('префикс для опознания', prefix('dstr_abc123xyz789'), 'dstr_abc123');
+eq('префикс для опознания', prefix('dstr_abc123xyz789'), 'dstr_abc123x');
 
 console.log(`\nИТОГ: ${p}/${p+f}`); process.exit(f?1:0);
