@@ -7,6 +7,7 @@
 // Если интерпретация сломается, данные останутся и разберутся позже.
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { FiscalService } from '../payments/fiscal.service';
 
 type PayKind = 'CASH' | 'CARD' | 'KASPI_QR' | 'BONUS' | 'TRANSFER';
 
@@ -14,7 +15,10 @@ type PayKind = 'CASH' | 'CARD' | 'KASPI_QR' | 'BONUS' | 'TRANSFER';
 export class OrderMaterializer {
   private readonly log = new Logger('Materializer');
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private fiscal: FiscalService,
+  ) {}
 
   /** Способ оплаты с кассы → тип платежа в БД. */
   private payKind(methodId: string): PayKind {
@@ -137,6 +141,28 @@ export class OrderMaterializer {
       });
 
       this.log.log(`Чек №${p.number} на ${Math.trunc(total / 100)} ₸ проведён`);
+
+      // Фискализация после создания заказа: продажа уже зафиксирована,
+      // и даже если ОФД недоступен, чек уйдёт в очередь и пробьётся позже
+      await this.fiscal.enqueue({
+        accountId,
+        orderId: p.orderId,
+        request: {
+          op: 'SELL',
+          items: p.items.map((i: any) => ({
+            name: i.name ?? '—',
+            qty: Number(i.qty ?? 1),
+            price: Number(i.unitPrice ?? 0),
+            vatRate: 0,   // ИП на упрощённом режиме НДС не платит
+          })),
+          payments: [{
+            kind: this.payKind(p.methodId) as any,
+            amount: Number(p.amount ?? total),
+          }],
+          total,
+        },
+      }).catch((e) => this.log.warn(`Фискализация чека ${p.orderId} отложена: ${e?.message}`));
+
       return 'created';
     } catch (e: any) {
       this.log.error(`Чек ${p.orderId} не разобран: ${e?.message}`);
