@@ -299,4 +299,135 @@ export class SupplyController {
         : null,
     };
   }
+
+  // ═══════════════ АКТ СВЕРКИ ═══════════════
+
+  /**
+   * Сверка с поставщиком: кто кому должен.
+   * Раз в месяц поставщик присылает свою цифру, и она не сходится
+   * с нашей. Без акта спор упирается в «а я помню иначе».
+   */
+  @Get('reconciliation')
+  @RequirePermission('finance.view')
+  async reconciliation(
+    @Query('supplierId') supplierId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const supplier = await this.prisma.supplier.findUnique({ where: { id: supplierId } });
+    if (!supplier) throw new NotFoundException({ code: 'SUPPLIER_NOT_FOUND' });
+
+    const fromDate = from ? new Date(from) : new Date(Date.now() - 90 * 86400_000);
+    const toDate = to ? new Date(to) : new Date();
+
+    const docs = await this.prisma.stockDoc.findMany({
+      where: {
+        supplierId,
+        status: 'POSTED',
+        postedAt: { gte: fromDate, lte: toDate },
+      },
+      include: { lines: true },
+      orderBy: { postedAt: 'asc' },
+    });
+
+    // Платежи поставщику: расход по статье закупок с привязкой к документу
+    const payments = await this.prisma.finTransaction.findMany({
+      where: {
+        supplyDocId: { in: docs.map((d) => d.id) },
+        at: { gte: fromDate, lte: toDate },
+      },
+      select: { supplyDocId: true, amount: true, at: true },
+    });
+    const paidBy = new Map<string, number>();
+    for (const p of payments) {
+      if (!p.supplyDocId) continue;
+      paidBy.set(p.supplyDocId, (paidBy.get(p.supplyDocId) ?? 0) + Math.abs(p.amount));
+    }
+
+    const now = Date.now();
+    let totalReceived = 0;
+    let totalPaid = 0;
+
+    const rows = docs.map((d) => {
+      const sum = d.lines.reduce((s, l) => s + Number(l.qty) * (l.unitCost ?? 0), 0);
+      const paid = paidBy.get(d.id) ?? 0;
+      totalReceived += sum;
+      totalPaid += paid;
+
+      // Срок оплаты по отсрочке из договора: видно, что просрочено,
+      // а что ещё в рамках договорённостей
+      const due = d.postedAt
+        ? new Date(d.postedAt.getTime() + supplier.deferDays * 86400_000)
+        : null;
+
+      return {
+        docId: d.id,
+        number: d.number,
+        type: d.type,
+        at: d.postedAt,
+        sum,
+        paid,
+        debt: sum - paid,
+        dueAt: due,
+        overdue: !!due && sum > paid && due.getTime() < now,
+        overdueDays: due && sum > paid && due.getTime() < now
+          ? Math.floor((now - due.getTime()) / 86400_000) : 0,
+      };
+    });
+
+    const debt = totalReceived - totalPaid;
+    const overdueSum = rows.filter((r) => r.overdue).reduce((s, r) => s + r.debt, 0);
+
+    return {
+      supplier: {
+        id: supplier.id, name: supplier.name,
+        binIin: supplier.binIin, phone: supplier.phone,
+        deferDays: supplier.deferDays,
+      },
+      period: { from: fromDate, to: toDate },
+      totalReceived,
+      totalPaid,
+      debt,
+      overdueSum,
+      // Формулировка на языке бухгалтера: «сальдо» понятно обеим сторонам
+      verdict: debt > 0
+        ? `Мы должны ${Math.trunc(debt / 100).toLocaleString('ru-RU')} ₸`
+        : debt < 0
+        ? `Переплата ${Math.trunc(-debt / 100).toLocaleString('ru-RU')} ₸`
+        : 'Расчёты закрыты',
+      rows,
+    };
+  }
+
+  /** Долги по всем поставщикам — что платить в первую очередь. */
+  @Get('debts')
+  @RequirePermission('finance.view')
+  async debts(@Req() req: any) {
+    const suppliers = await this.prisma.supplier.findMany({
+      where: { accountId: req.user.acc, isActive: true },
+    });
+
+    const out = [];
+    for (const s of suppliers) {
+      const r = await this.reconciliation(s.id).catch(() => null);
+      if (!r || r.debt <= 0) continue;
+      out.push({
+        supplierId: s.id,
+        name: s.name,
+        phone: s.phone,
+        debt: r.debt,
+        overdueSum: r.overdueSum,
+        // Просроченный долг платим первым: за него портятся отношения
+        // и могут перестать отгружать
+        priority: r.overdueSum > 0 ? 'high' : 'normal',
+      });
+    }
+
+    out.sort((a, b) => b.overdueSum - a.overdueSum || b.debt - a.debt);
+    return {
+      totalDebt: out.reduce((s, x) => s + x.debt, 0),
+      overdueTotal: out.reduce((s, x) => s + x.overdueSum, 0),
+      rows: out,
+    };
+  }
 }
