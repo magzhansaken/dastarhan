@@ -396,4 +396,197 @@ export class MenuController {
     });
     return { ok: true };
   }
+
+  /**
+   * Активное меню на текущий момент: бизнес-ланч, завтраки, бар.
+   *
+   * Касса вызывает при входе и раз в пять минут. Без расписания
+   * кассир следит за временем сам и продаёт ланч в девять вечера
+   * по дневной цене.
+   */
+  @Get('active-schedule')
+  @UseGuards(JwtGuard)
+  async activeSchedule(
+    @Query('locationId') locationId: string,
+    @Query('at') at?: string,
+  ) {
+    const now = at ? new Date(at) : new Date();
+    const dow = (now.getDay() + 6) % 7;
+    const minutes = now.getHours() * 60 + now.getMinutes();
+
+    const schedules = await this.prisma.menuSchedule.findMany({
+      where: {
+        isActive: true,
+        OR: [{ locationId }, { locationId: null }],
+      },
+      include: { items: true },
+    });
+
+    const active = schedules.filter((s) => {
+      const dayOk = s.days.length === 0 || s.days.includes(dow);
+      // Ночной интервал: бар с 20:00 до 02:00 пересекает полночь,
+      // и обычное сравнение здесь не работает
+      const timeOk = s.fromMin <= s.toMin
+        ? minutes >= s.fromMin && minutes < s.toMin
+        : minutes >= s.fromMin || minutes < s.toMin;
+      return dayOk && timeOk;
+    });
+
+    const fmt = (m: number) =>
+      `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+    // Ближайшее расписание: кассир видит, что скоро начнётся,
+    // и может предупредить гостя — «через 10 минут ланч дешевле»
+    const upcoming = schedules
+      .filter((s) => !active.includes(s))
+      .filter((s) => s.days.length === 0 || s.days.includes(dow))
+      .filter((s) => s.fromMin > minutes)
+      .sort((a, b) => a.fromMin - b.fromMin)[0];
+
+    return {
+      at: now,
+      active: active.map((s) => ({
+        scheduleId: s.id,
+        name: s.name,
+        window: `${fmt(s.fromMin)}–${fmt(s.toMin)}`,
+        pricePct: s.pricePct,
+        endsInMin: s.toMin > minutes ? s.toMin - minutes : (1440 - minutes) + s.toMin,
+        items: s.items.map((i) => ({
+          productId: i.productId,
+          price: i.price,
+          onlyInTime: i.onlyInTime,
+        })),
+      })),
+      upcoming: upcoming ? {
+        name: upcoming.name,
+        startsInMin: upcoming.fromMin - minutes,
+        window: `${fmt(upcoming.fromMin)}–${fmt(upcoming.toMin)}`,
+      } : null,
+      // Позиции, скрытые вне своего времени: касса не покажет
+      // завтраки вечером, и кассир не объяснит гостю, почему
+      // блюдо из меню недоступно
+      hiddenNow: schedules
+        .filter((s) => !active.includes(s))
+        .flatMap((s) => s.items.filter((i) => i.onlyInTime).map((i) => i.productId)),
+    };
+  }
+
+  /** Создать расписание: бизнес-ланч, завтраки, вечернее меню. */
+  @Post('schedules')
+  @UseGuards(JwtGuard, PermissionsGuard)
+  @RequirePermission('menu.edit')
+  async createSchedule(
+    @Body() dto: {
+      name: string; locationId?: string;
+      days?: number[]; from: string; to: string;
+      pricePct?: number;
+      items?: { productId: string; price?: number; onlyInTime?: boolean }[];
+    },
+    @Req() req: any,
+  ) {
+    const toMin = (hhmm: string) => {
+      const [h, m] = hhmm.split(':').map(Number);
+      return h * 60 + (m || 0);
+    };
+    const fromMin = toMin(dto.from);
+    const endMin = toMin(dto.to);
+
+    if (fromMin === endMin) {
+      throw new BadRequestException({
+        code: 'BAD_WINDOW',
+        message: 'Начало и конец совпадают — укажите разное время',
+      });
+    }
+
+    const s = await this.prisma.menuSchedule.create({
+      data: {
+        accountId: req.user.acc,
+        locationId: dto.locationId ?? null,
+        name: dto.name.trim(),
+        days: dto.days ?? [],
+        fromMin, toMin: endMin,
+        pricePct: dto.pricePct ?? null,
+        items: dto.items?.length ? {
+          create: dto.items.map((i) => ({
+            productId: i.productId,
+            price: i.price ?? null,
+            onlyInTime: i.onlyInTime ?? false,
+          })),
+        } : undefined,
+      },
+      include: { items: true },
+    });
+
+    return { scheduleId: s.id, name: s.name, items: s.items.length };
+  }
+
+  /**
+   * Массовое изменение цен: поднять всё меню на процент.
+   * Инфляция или подорожание сырья — владелец не должен править
+   * восемьдесят позиций руками.
+   */
+  @Post('prices/bulk')
+  @UseGuards(JwtGuard, PermissionsGuard)
+  @RequirePermission('menu.edit')
+  async bulkPrices(
+    @Body() dto: {
+      percent?: number;
+      categoryId?: string;
+      productIds?: string[];
+      roundTo?: number;
+      dryRun?: boolean;
+    },
+    @Req() req: any,
+  ) {
+    if (!dto.percent) throw new BadRequestException({ code: 'NO_PERCENT' });
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        accountId: req.user.acc,
+        isDeleted: false,
+        type: { in: ['DISH', 'GOODS'] },
+        ...(dto.categoryId ? { categoryId: dto.categoryId } : {}),
+        ...(dto.productIds?.length ? { id: { in: dto.productIds } } : {}),
+      },
+      select: { id: true, name: true, basePrice: true },
+    });
+
+    // Округление до сотен: цена 2 847 ₸ выглядит как ошибка,
+    // 2 850 — как решение
+    const round = (dto.roundTo ?? 5000);
+    const changes = products.map((p) => {
+      const raw = Math.round(p.basePrice * (100 + dto.percent!) / 100);
+      const next = Math.round(raw / round) * round;
+      return {
+        productId: p.id,
+        name: p.name,
+        from: p.basePrice,
+        to: next,
+        deltaPct: p.basePrice > 0
+          ? +(((next - p.basePrice) / p.basePrice) * 100).toFixed(1) : 0,
+      };
+    }).filter((c) => c.to !== c.from);
+
+    // Предпросмотр обязателен: поднять цены на всё меню —
+    // необратимое действие, которое заметят гости
+    if (dto.dryRun !== false) {
+      return {
+        preview: true,
+        count: changes.length,
+        changes: changes.slice(0, 100),
+        hint: 'Проверьте цены и повторите с dryRun: false',
+      };
+    }
+
+    await this.prisma.$transaction(
+      changes.map((c) =>
+        this.prisma.product.update({
+          where: { id: c.productId },
+          data: { basePrice: c.to },
+        }),
+      ),
+    );
+
+    return { applied: true, count: changes.length };
+  }
 }

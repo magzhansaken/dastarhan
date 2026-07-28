@@ -1820,3 +1820,37 @@ enum InventoryStatus {
   POSTED     // проведена, остатки скорректированы
   CANCELLED
 }
+
+/// Расписание меню: бизнес-ланч с 12 до 16, бар после 18,
+/// завтраки до 11. Без этого кассир вручную следит за временем
+/// и продаёт ланч в девять вечера.
+model MenuSchedule {
+  id         String   @id @default(cuid())
+  accountId  String
+  locationId String?
+  name       String                  // «Бизнес-ланч», «Завтраки»
+  /// Дни недели: 0 = понедельник. Пустой массив — все дни
+  days       Int[]    @default([])
+  fromMin    Int                     // минуты от полуночи: 12:00 = 720
+  toMin      Int
+  /// Цены в это время: отдельный прайс или процент от базового
+  pricePct   Int?                    // 80 = скидка 20% на всё меню
+  isActive   Boolean  @default(true)
+
+  items      MenuScheduleItem[]
+
+  @@index([accountId, locationId])
+}
+
+model MenuScheduleItem {
+  id         String       @id @default(cuid())
+  scheduleId String
+  schedule   MenuSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  productId  String
+  /// Своя цена в это время. Null — берём базовую с процентом
+  price      Int?
+  /// Показывать только в это время или всегда, но дешевле
+  onlyInTime Boolean      @default(false)
+
+  @@unique([scheduleId, productId])
+}
