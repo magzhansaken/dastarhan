@@ -33,7 +33,8 @@ export class DealerController {
     });
 
     const active = subs.filter((s) => s.status === 'ACTIVE' || s.status === 'TRIAL');
-    const rate = dealer.commissionPct ?? 15;
+    // commissionPct в схеме Decimal — приводим к числу для арифметики
+    const rate = Number(dealer.commissionPct ?? 15);
 
     // Комиссия считается от ПОСТУПИВШИХ платежей, а не от счетов:
     // дилер получает долю с реальных денег, как и мы
@@ -98,7 +99,12 @@ export class DealerController {
     const nameBy = new Map(accounts.map((a) => [a.id, a]));
     const now = Date.now();
 
-    const rows = [];
+    const rows: {
+      accountId: string; name: string; status: string;
+      since: Date | null; periodEnd: Date; daysToEnd: number;
+      lastReceiptAt: Date | null; needsCall: boolean; callReason: string | null;
+    }[] = [];
+
     for (const s of subs) {
       const a = nameBy.get(s.accountId);
       const last = await this.prisma.order.findFirst({

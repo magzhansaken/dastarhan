@@ -65,7 +65,6 @@ export class BillingController {
     const daysLeft = Math.max(0,
       Math.ceil((sub.periodEnd.getTime() - now.getTime()) / 86400_000));
 
-    const now = new Date();
     const grace = new Date(sub.periodEnd);
     grace.setDate(grace.getDate() + (sub.graceDays ?? 7));
 

@@ -63,7 +63,7 @@ export class SupplyController {
 
     // Сумма закупок и дата последней: видно, кто основной поставщик,
     // а кто разовый — при переговорах о скидке это аргумент
-    const out = [];
+    const out: any[] = [];
     for (const s of rows) {
       const docs = await this.prisma.stockDoc.findMany({
         where: { supplierId: s.id, status: 'POSTED' },
@@ -136,7 +136,7 @@ export class SupplyController {
     });
     const supBy = new Map(suppliers.map((s) => [s.id, s]));
 
-    const rows = [];
+    const rows: any[] = [];
     for (const l of limits) {
       const bal = balBy.get(l.productId);
       const have = bal ? Number(bal.qty) : 0;
@@ -407,7 +407,7 @@ export class SupplyController {
       where: { accountId: req.user.acc, isActive: true },
     });
 
-    const out = [];
+    const out: any[] = [];
     for (const s of suppliers) {
       const r = await this.reconciliation(s.id).catch(() => null);
       if (!r || r.debt <= 0) continue;

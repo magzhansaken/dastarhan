@@ -119,7 +119,7 @@ export class AdminController {
     const planById = new Map(plans.map((p) => [p.id, p]));
     const subBy = new Map(subs.map((s) => [s.accountId, s]));
 
-    const rows = [];
+    const rows: any[] = [];
     for (const a of accounts) {
       const sub = subBy.get(a.id);
       if (status && sub?.status !== status) continue;
@@ -286,7 +286,7 @@ export class AdminController {
     const week = new Date(now - 7 * 86400_000);
     const prevWeek = new Date(now - 14 * 86400_000);
 
-    const rows = [];
+    const rows: any[] = [];
     let totalMrr = 0;
 
     for (const a of accounts) {
