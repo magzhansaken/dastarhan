@@ -1570,3 +1570,79 @@ enum ReservationStatus {
   NO_SHOW    // не пришёл — считаем отдельно, это потеря
   CANCELLED
 }
+
+/// Поставщик. Без справочника невозможна сверка: в накладных
+/// остаётся текст «ИП Ербол», и через полгода никто не помнит,
+/// тот же это Ербол или другой.
+model Supplier {
+  id         String  @id @default(cuid())
+  accountId  String
+  name       String
+  binIin     String?           // БИН/ИИН для сверки и документов
+  phone      String?
+  contact    String?           // имя менеджера, с кем говорить
+  category   String?           // «мясо», «овощи», «бар»
+  deferDays  Int     @default(0)  // отсрочка платежа по договору
+  isActive   Boolean @default(true)
+  note       String?
+  createdAt  DateTime @default(now())
+
+  requests   SupplyRequest[]
+
+  @@index([accountId])
+}
+
+/// Заявка поставщику. Заказ по телефону забывается — через день
+/// никто не помнит, что заказывали и когда обещали привезти.
+model SupplyRequest {
+  id          String   @id @default(cuid())
+  accountId   String
+  locationId  String
+  supplierId  String
+  supplier    Supplier @relation(fields: [supplierId], references: [id])
+  number      Int
+  status      SupplyRequestStatus @default(DRAFT)
+  expectedAt  DateTime?
+  note        String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  sentAt      DateTime?
+  closedAt    DateTime?
+
+  lines       SupplyRequestLine[]
+
+  @@index([accountId, status])
+}
+
+model SupplyRequestLine {
+  id         String  @id @default(cuid())
+  requestId  String
+  request    SupplyRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  productId  String
+  qty        Decimal
+  receivedQty Decimal @default(0)   // сколько реально привезли
+  note       String?
+}
+
+enum SupplyRequestStatus {
+  DRAFT      // собирается
+  SENT       // отправлена поставщику
+  PARTIAL    // привезли не всё
+  RECEIVED   // закрыта приходом
+  CANCELLED
+}
+
+/// Минимальный и максимальный остаток. Система сама говорит,
+/// что заканчивается, — заведение не должно узнавать о нехватке
+/// от гостя, которому не смогли подать блюдо.
+model StockLimit {
+  id          String  @id @default(cuid())
+  warehouseId String
+  productId   String
+  minQty      Decimal          // ниже — пора заказывать
+  maxQty      Decimal?         // выше — перезатарились, деньги стоят
+  supplierId  String?          // у кого обычно берём
+
+  @@unique([warehouseId, productId])
+  @@index([warehouseId])
+}
