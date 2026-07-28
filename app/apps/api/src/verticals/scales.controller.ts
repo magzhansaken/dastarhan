@@ -98,7 +98,10 @@ export class ScalesController {
     const p = found.product;
 
     if (isPrice) {
-      const total = payload * 10;   // копейки весов → тиыны
+      // Весы пишут цену в тенге с двумя знаками: 01400 = 14,00 ₸.
+      // Умножаем на 100, получая тиыны. Множитель 10 дал бы
+      // цену вдесятеро меньше — и магазин торговал бы в убыток
+      const total = payload * 100;
       const qty = p.basePrice > 0 ? +(total / p.basePrice).toFixed(3) : 1;
       return {
         found: true, kind: 'weighted_price',

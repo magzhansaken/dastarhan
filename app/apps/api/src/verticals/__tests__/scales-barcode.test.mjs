@@ -5,7 +5,7 @@ function parse(code, priceOf) {
   const prefix = code.slice(0,2), inner = code.slice(2,7), payload = +code.slice(7,12);
   const price = priceOf(inner);
   if (prefix === '21') {
-    const total = payload * 10;
+    const total = payload * 100;
     return { kind:'weighted_price', inner, total, qty: price>0 ? +(total/price).toFixed(3) : 1 };
   }
   const qty = payload / 1000;
