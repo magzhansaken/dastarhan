@@ -1925,3 +1925,61 @@ enum AttendanceStatus {
   ISSUE     // проблемная: опоздание, прогул, переработка
   APPROVED  // проблему разобрали и приняли
 }
+
+/// Банкет: свадьба, юбилей, корпоратив. Отличается от брони
+/// принципиально — согласованное меню, предоплата, отдельный
+/// расчёт и подготовка кухни за день.
+model Banquet {
+  id           String   @id @default(cuid())
+  accountId    String
+  locationId   String
+  number       Int
+  title        String                    // «Свадьба Ержана»
+  guestName    String
+  phone        String
+  guestsCount  Int
+  startAt      DateTime
+  durationMin  Int      @default(240)
+  hallId       String?
+  tableIds     String[] @default([])
+  status       BanquetStatus @default(DRAFT)
+  /// Предоплата: без неё банкет не подтверждаем — зал занят,
+  /// продукты закуплены, а гость может не прийти
+  prepaid      Int      @default(0)
+  prepaidAt    DateTime?
+  /// Сервисный сбор процентом: на банкетах это норма рынка
+  servicePct   Int      @default(0)
+  total        Int      @default(0)
+  managerId    String?
+  comment      String?
+  createdAt    DateTime @default(now())
+  confirmedAt  DateTime?
+  orderId      String?                   // заказ на кассе при проведении
+
+  items        BanquetItem[]
+
+  @@index([accountId, startAt])
+  @@index([locationId, startAt])
+}
+
+model BanquetItem {
+  id         String  @id @default(cuid())
+  banquetId  String
+  banquet    Banquet @relation(fields: [banquetId], references: [id], onDelete: Cascade)
+  productId  String
+  name       String
+  qty        Decimal
+  unitPrice  Int
+  /// Подача: холодные закуски, горячее, десерт — кухня готовит
+  /// по очереди, а не всё сразу
+  course     Int     @default(1)
+  comment    String?
+}
+
+enum BanquetStatus {
+  DRAFT       // обсуждаем меню
+  CONFIRMED   // предоплата внесена, зал держим
+  PREPARING   // кухня закупает и готовит
+  DONE        // провели
+  CANCELLED
+}
