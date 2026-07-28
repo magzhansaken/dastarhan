@@ -463,3 +463,13 @@ input[type="range"] { width: 100%; accent-color: var(--accent); height: 26px; }
 }
 
 @media print { .hdr, .sticky-cta, .cta { display: none; } }
+
+/* ══════════ МОБИЛЬНАЯ ВЕРСТКА ══════════
+   Владелец смотрит сайт с телефона — в зале, между сменами.
+   Кнопки 52 px, ничего мельче 16 px.
+   Переключатель Қаз в шапке, не в подвале. */
+@media (max-width: 620px) {
+  .btn-lg { min-height: 52px; font-size: 17px; }
+  body { font-size: 16px; }
+  .hint, .total-note { font-size: 14px; }
+}
