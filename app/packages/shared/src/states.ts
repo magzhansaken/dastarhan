@@ -334,3 +334,26 @@ export function isValidStateCopy(text: string): boolean {
   const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0);
   return sentences.length <= 3;
 }
+
+// ═══════════════ ЖИВЫЕ ПРИМЕРЫ СОСТОЯНИЙ ═══════════════
+// Показываются на странице дизайн-системы: кнопка «Повторить»
+// действительно работает, а не нарисована
+
+export const LIVE_EXAMPLES = {
+  reportFailed: {
+    title: 'Отчёт не загрузился · живой пример',
+    reportName: 'Выручка за июль',
+  },
+  // Блокировка по тарифу называет тариф: владелец сразу видит,
+  // на какой перейти, а не идёт искать в биллинге
+  lockedByPlan: {
+    section: (name: string) => `Раздел «${name}» вам не открыт`,
+    planName: (plan: string) => `тариф ${plan}`,
+  },
+  fiscalQueue: {
+    // Крайний срок отправки в ОФД: 72 часа по закону.
+    // Показываем дату, а не «скоро» — кассир должен понимать срочность
+    deadline: (d: string) => `Крайний срок · ${d}`,
+    count: (n: number) => `${n} ${n === 1 ? 'чек' : n < 5 ? 'чека' : 'чеков'}`,
+  },
+} as const;
