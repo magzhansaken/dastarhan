@@ -457,6 +457,11 @@ enum OrderStatus {
 }
 
 model Order {
+  /// Пречек напечатан — счёт заблокирован от изменений.
+  /// Гость видит сумму на бумаге, и она не должна меняться
+  /// без ведома старшего
+  precheckedAt DateTime?
+  unlockedBy   String?
   id          String      @id @default(cuid())
   accountId   String
   locationId  String

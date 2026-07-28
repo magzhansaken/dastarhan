@@ -238,3 +238,197 @@ export class TcpPrinter implements PrinterTransport {
     });
   }
 }
+
+/**
+ * Заказник для кухни — то, что Paloma называет «под заказник».
+ *
+ * Отличается от чека принципиально: повару не нужны цены и суммы,
+ * ему нужно КРУПНО название, количество и комментарий. Печатается
+ * на кухонном принтере, часто на бумаге другого цвета.
+ */
+export function buildKitchenTicket(o: {
+  orderNumber: number;
+  tableName?: string | null;
+  mode: string;
+  waiterName?: string | null;
+  at: Date;
+  station?: string | null;
+  items: { name: string; qty: number; comment?: string | null; modifiers?: string[] }[];
+}): Uint8Array {
+  const W = 32;
+  const parts: Uint8Array[] = [];
+
+  parts.push(new Uint8Array([0x1b, 0x40]));            // сброс
+  parts.push(new Uint8Array([0x1b, 0x61, 0x01]));      // центр
+
+  // Двойная высота и ширина: повар читает от плиты, за метр-полтора
+  parts.push(new Uint8Array([0x1d, 0x21, 0x11]));
+  parts.push(toCp(o.tableName ? `СТОЛ ${o.tableName}` : 'НАВЫНОС'));
+  parts.push(new Uint8Array([0x0a]));
+  parts.push(new Uint8Array([0x1d, 0x21, 0x00]));      // обычный
+
+  parts.push(toCp(`Заказ №${o.orderNumber}`));
+  parts.push(new Uint8Array([0x0a]));
+  parts.push(toCp(o.at.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })));
+  if (o.waiterName) {
+    parts.push(toCp(` · ${o.waiterName}`));
+  }
+  parts.push(new Uint8Array([0x0a]));
+  if (o.station) {
+    parts.push(toCp(o.station));
+    parts.push(new Uint8Array([0x0a]));
+  }
+
+  parts.push(new Uint8Array([0x1b, 0x61, 0x00]));      // влево
+  parts.push(divider(W));
+
+  for (const i of o.items) {
+    // Количество и название крупно: главное, что нужно повару
+    parts.push(new Uint8Array([0x1d, 0x21, 0x01]));    // двойная высота
+    parts.push(toCp(`${i.qty} × ${i.name}`));
+    parts.push(new Uint8Array([0x0a]));
+    parts.push(new Uint8Array([0x1d, 0x21, 0x00]));
+
+    if (i.modifiers?.length) {
+      parts.push(toCp(`   ${i.modifiers.join(', ')}`));
+      parts.push(new Uint8Array([0x0a]));
+    }
+    // Комментарий инверсией: «без лука» пропустить нельзя,
+    // иначе блюдо вернётся с кухни
+    if (i.comment) {
+      parts.push(new Uint8Array([0x1d, 0x42, 0x01]));  // инверсия вкл
+      parts.push(toCp(` ${i.comment} `));
+      parts.push(new Uint8Array([0x1d, 0x42, 0x00]));
+      parts.push(new Uint8Array([0x0a]));
+    }
+    parts.push(new Uint8Array([0x0a]));
+  }
+
+  parts.push(divider(W));
+  parts.push(new Uint8Array([0x0a, 0x0a, 0x0a]));
+  parts.push(new Uint8Array([0x1d, 0x56, 0x00]));      // отрез
+
+  return concat(parts);
+}
+
+/**
+ * Пост-чек — счёт об оплате после расчёта.
+ * В отличие от фискального чека печатается всегда, даже когда
+ * Webkassa недоступна: гость уходит с бумагой, а фискальный
+ * догонит его на почту или в кабинет ОФД.
+ */
+export function buildPostCheck(o: {
+  shopName: string;
+  orderNumber: number;
+  tableName?: string | null;
+  at: Date;
+  items: { name: string; qty: number; unitPrice: number }[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  payments: { kind: string; amount: number }[];
+  change?: number;
+  fiscalNumber?: string | null;
+  ofdUrl?: string | null;
+}): Uint8Array {
+  const W = 32;
+  const money = (v: number) =>
+    `${Math.trunc(v / 100).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;
+  const parts: Uint8Array[] = [];
+
+  parts.push(new Uint8Array([0x1b, 0x40]));
+  parts.push(new Uint8Array([0x1b, 0x61, 0x01]));
+  parts.push(new Uint8Array([0x1d, 0x21, 0x01]));
+  parts.push(toCp(o.shopName));
+  parts.push(new Uint8Array([0x0a]));
+  parts.push(new Uint8Array([0x1d, 0x21, 0x00]));
+
+  parts.push(toCp(`Чек №${o.orderNumber}`));
+  if (o.tableName) parts.push(toCp(` · стол ${o.tableName}`));
+  parts.push(new Uint8Array([0x0a]));
+  parts.push(toCp(o.at.toLocaleString('ru-RU', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })));
+  parts.push(new Uint8Array([0x0a]));
+
+  parts.push(new Uint8Array([0x1b, 0x61, 0x00]));
+  parts.push(divider(W));
+
+  for (const i of o.items) {
+    parts.push(toCp(i.name));
+    parts.push(new Uint8Array([0x0a]));
+    parts.push(lineLR(`  ${i.qty} × ${money(i.unitPrice)}`, money(i.qty * i.unitPrice), W));
+    parts.push(new Uint8Array([0x0a]));
+  }
+
+  parts.push(divider(W));
+  if (o.discount > 0) {
+    parts.push(lineLR('Сумма', money(o.subtotal), W));
+    parts.push(new Uint8Array([0x0a]));
+    parts.push(lineLR('Скидка', `-${money(o.discount)}`, W));
+    parts.push(new Uint8Array([0x0a]));
+  }
+
+  // Итог двойной высотой: гость смотрит на эту строку первой
+  parts.push(new Uint8Array([0x1d, 0x21, 0x01]));
+  parts.push(lineLR('ИТОГО', money(o.total), Math.floor(W / 2)));
+  parts.push(new Uint8Array([0x0a]));
+  parts.push(new Uint8Array([0x1d, 0x21, 0x00]));
+
+  for (const p of o.payments) {
+    const label = p.kind === 'CASH' ? 'Наличные'
+      : p.kind === 'CARD' ? 'Карта'
+      : p.kind === 'KASPI_QR' ? 'Kaspi QR' : p.kind;
+    parts.push(lineLR(label, money(p.amount), W));
+    parts.push(new Uint8Array([0x0a]));
+  }
+  if (o.change && o.change > 0) {
+    parts.push(lineLR('Сдача', money(o.change), W));
+    parts.push(new Uint8Array([0x0a]));
+  }
+
+  parts.push(divider(W));
+  parts.push(new Uint8Array([0x1b, 0x61, 0x01]));
+
+  // Фискальный номер печатаем, если чек ушёл. Если нет — честно
+  // говорим, что уйдёт позже, а не молчим
+  if (o.fiscalNumber) {
+    parts.push(toCp(`Фискальный чек ${o.fiscalNumber}`));
+    parts.push(new Uint8Array([0x0a]));
+    if (o.ofdUrl) {
+      parts.push(toCp(o.ofdUrl));
+      parts.push(new Uint8Array([0x0a]));
+    }
+  } else {
+    parts.push(toCp('Фискальный чек будет отправлен'));
+    parts.push(new Uint8Array([0x0a]));
+    parts.push(toCp('в ОФД после восстановления связи'));
+    parts.push(new Uint8Array([0x0a]));
+  }
+
+  parts.push(new Uint8Array([0x0a]));
+  parts.push(toCp('Спасибо! Рахмет!'));
+  parts.push(new Uint8Array([0x0a, 0x0a, 0x0a]));
+  parts.push(new Uint8Array([0x1d, 0x56, 0x00]));
+
+  return concat(parts);
+}
+
+/**
+ * Разбивка позиций по цехам для раздельной печати.
+ * Салаты не должны падать на мангал, а шашлык — в холодный цех:
+ * повар получает только своё.
+ */
+export function splitByStation<T extends { stationId?: string | null; stationName?: string | null }>(
+  items: T[],
+): { station: string | null; stationName: string | null; items: T[] }[] {
+  const map = new Map<string, { station: string | null; stationName: string | null; items: T[] }>();
+  for (const i of items) {
+    const key = i.stationId ?? '__none';
+    const cur = map.get(key);
+    if (cur) cur.items.push(i);
+    else map.set(key, { station: i.stationId ?? null, stationName: i.stationName ?? null, items: [i] });
+  }
+  return [...map.values()];
+}
