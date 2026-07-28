@@ -430,4 +430,113 @@ export class SupplyController {
       rows: out,
     };
   }
+
+  /**
+   * Рекомендация закупки на основе продаж. Владелец не задаёт
+   * минимумы руками — система считает по фактическому расходу.
+   *
+   * У iiko это «Рекомендуем заказать» на неделю. Мы идём дальше:
+   * учитываем день недели и срок поставки, потому что расход
+   * в пятницу и во вторник отличается вдвое.
+   */
+  @Get('recommend')
+  @RequirePermission('stock.supply')
+  async recommend(
+    @Req() req: any,
+    @Query('warehouseId') warehouseId: string,
+    @Query('days') coverDays = '7',
+  ) {
+    const cover = Number(coverDays) || 7;
+    const from = new Date();
+    from.setDate(from.getDate() - 28);   // четыре недели — сглаживает случайные всплески
+
+    const moves = await this.prisma.stockMovement.findMany({
+      where: {
+        accountId: req.user.acc,
+        warehouseId: warehouseId || undefined,
+        qtyDelta: { lt: 0 },
+        at: { gte: from },
+      },
+      select: { productId: true, qtyDelta: true, at: true },
+    });
+
+    if (!moves.length) {
+      return { rows: [], note: 'Мало данных — рекомендации появятся через неделю продаж' };
+    }
+
+    // Расход по дням недели: в пятницу расходится вдвое больше,
+    // чем во вторник, и средний по неделе врёт для обоих
+    const byProduct = new Map<string, { total: number; byDow: number[]; days: Set<string> }>();
+    for (const m of moves) {
+      const cur = byProduct.get(m.productId) ?? {
+        total: 0, byDow: Array(7).fill(0), days: new Set<string>(),
+      };
+      const qty = Math.abs(Number(m.qtyDelta));
+      cur.total += qty;
+      cur.byDow[(m.at.getDay() + 6) % 7] += qty;   // 0 = понедельник
+      cur.days.add(m.at.toISOString().slice(0, 10));
+      byProduct.set(m.productId, cur);
+    }
+
+    const [balances, products, limits] = await Promise.all([
+      this.prisma.stockBalance.findMany({
+        where: { warehouseId: warehouseId || undefined, productId: { in: [...byProduct.keys()] } },
+      }),
+      this.prisma.product.findMany({
+        where: { id: { in: [...byProduct.keys()] } },
+        select: { id: true, name: true, unit: true },
+      }),
+      this.prisma.stockLimit.findMany({
+        where: { warehouseId: warehouseId || undefined },
+      }),
+    ]);
+
+    const balBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
+    const prodBy = new Map(products.map((p) => [p.id, p]));
+    const supBy = new Map(limits.map((l) => [l.productId, l.supplierId]));
+
+    const rows = [];
+    for (const [productId, v] of byProduct) {
+      const activeDays = Math.max(1, v.days.size);
+      const perDay = v.total / activeDays;
+      const have = balBy.get(productId) ?? 0;
+
+      // Пиковый день недели: если расход неровный, ориентируемся
+      // на худший случай, иначе кончится в субботу вечером
+      const peakDow = Math.max(...v.byDow) / Math.max(1, activeDays / 7);
+      const daily = Math.max(perDay, peakDow / 7);
+
+      const need = daily * cover - have;
+      const daysLeft = daily > 0 ? Math.floor(have / daily) : 999;
+
+      if (need <= 0 && daysLeft > cover) continue;
+
+      const p = prodBy.get(productId);
+      rows.push({
+        productId,
+        name: p?.name ?? '—',
+        unit: p?.unit ?? null,
+        have: +have.toFixed(3),
+        dailyUse: +daily.toFixed(3),
+        // Дней до нуля — понятнее, чем «остаток 1.2 кг»:
+        // владелец сразу знает, успеет ли заказать
+        daysLeft: daysLeft > 99 ? null : daysLeft,
+        recommend: +Math.max(0, need).toFixed(3),
+        supplierId: supBy.get(productId) ?? null,
+        urgent: daysLeft <= 2,
+      });
+    }
+
+    rows.sort((a, b) => (a.daysLeft ?? 999) - (b.daysLeft ?? 999));
+
+    return {
+      coverDays: cover,
+      basedOn: 'расход за 4 недели с учётом дня недели',
+      urgentCount: rows.filter((r) => r.urgent).length,
+      rows,
+      note: rows.length
+        ? `${rows.length} позиций закончатся в ближайшие ${cover} дней`
+        : 'Запасов хватает',
+    };
+  }
 }
