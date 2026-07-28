@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import './backoffice.css';
 import './platform.css';
 import { Dashboard } from './screens/BackofficeScreens';
+import { OnboardingWizard, ONB_STEPS } from './onboarding/OnboardingWizard';
 
 const API = '/api/v1';
 const TOKEN = 'dastarhan.office.token';
@@ -145,16 +146,66 @@ function ProfitView({ token }: { token: string }) {
   );
 }
 
+// ═══════════════ МАСТЕР НАСТРОЙКИ ═══════════════
+// Открывается сразу после регистрации: владелец обещали первый чек
+// за 15 минут, значит путь не должен обрываться на пустом дашборде.
+
+const ONB_KEY = 'dastarhan.onboarding';
+
+function Wizard({ token, accountName, onDone }: {
+  token: string; accountName: string; onDone: () => void;
+}) {
+  const saved = JSON.parse(localStorage.getItem(ONB_KEY) ?? '{}');
+  const [done, setDone] = useState<string[]>(saved.done ?? []);
+  const [active, setActive] = useState<string>(saved.active ?? ONB_STEPS[0].key);
+  const [sel, setSel] = useState<any>(saved.sel ?? {});
+
+  const save = (d: string[], a: string, s: any) => {
+    localStorage.setItem(ONB_KEY, JSON.stringify({ done: d, active: a, sel: s }));
+  };
+
+  const next = () => {
+    const i = ONB_STEPS.findIndex((x) => x.key === active);
+    const d = done.includes(active) ? done : [...done, active];
+    const a = ONB_STEPS[Math.min(i + 1, ONB_STEPS.length - 1)].key;
+    setDone(d); setActive(a); save(d, a, sel);
+  };
+
+  return (
+    <OnboardingWizard
+      accountName={accountName}
+      ownerName={JSON.parse(localStorage.getItem('dastarhan.user') ?? '{}').name ?? 'Владелец'}
+      doneKeys={done}
+      activeKey={active}
+      selected={sel}
+      onSelectBusiness={(k) => { const s = { ...sel, business: k }; setSel(s); save(done, active, s); }}
+      onSelectMenuSource={(k) => { const s = { ...sel, menuSource: k }; setSel(s); save(done, active, s); }}
+      onStep={(k) => { setActive(k); save(done, k, sel); }}
+      onNext={next}
+      onSkip={next}
+      onFinish={() => {
+        // Отметку о завершении храним локально: повторно мастер
+        // не покажется, но владелец сможет вернуться из меню
+        localStorage.setItem(ONB_KEY, JSON.stringify({ done: ONB_STEPS.map((s) => s.key), active, sel, finished: true }));
+        onDone();
+      }}
+    />
+  );
+}
+
 // ═══════════════ ОБОЛОЧКА ═══════════════
 
 const TABS = [
   { id: 'dash', title: 'Как идут дела' },
   { id: 'stock', title: 'Склад' },
   { id: 'profit', title: 'Прибыль' },
+  { id: 'setup', title: 'Мастер настройки' },
 ];
 
 function Office({ token, onOut }: { token: string; onOut: () => void }) {
-  const [tab, setTab] = useState('dash');
+  // Новый владелец сразу попадает в мастер, а не на пустой дашборд
+  const onb = JSON.parse(localStorage.getItem(ONB_KEY) ?? '{}');
+  const [tab, setTab] = useState(onb.finished ? 'dash' : 'setup');
   const [dash, setDash] = useState<any>(null);
   const [err, setErr] = useState(false);
 
@@ -189,6 +240,10 @@ function Office({ token, onOut }: { token: string; onOut: () => void }) {
         )}
         {tab === 'stock' && <StockView token={token} />}
         {tab === 'profit' && <ProfitView token={token} />}
+        {tab === 'setup' && (
+          <Wizard token={token} accountName={dash?.accountName ?? 'Ваше заведение'}
+            onDone={() => setTab('dash')} />
+        )}
       </main>
     </div>
   );
