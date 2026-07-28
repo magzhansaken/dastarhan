@@ -28,6 +28,7 @@ import { ButcheringController } from './stock/butchering.controller';
 import { DepositsController } from './guests/deposits.controller';
 import { DealerController } from './dealer/dealer.controller';
 import { TelegramController } from './integrations/telegram.controller';
+import { AggregatorsController } from './integrations/aggregators.controller';
 import { KdsController } from './kds/kds.controller';
 import { BillingController } from './billing/billing.controller';
 import { StockController } from './stock/stock.controller';
@@ -51,7 +52,7 @@ import { VerticalsController } from './verticals/verticals.controller';
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
-    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController, StaffController, DealerController, SupplyController, ButcheringController, DepositsController],
+    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController, StaffController, DealerController, SupplyController, ButcheringController, DepositsController, AggregatorsController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}
