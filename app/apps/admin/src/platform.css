@@ -1,0 +1,381 @@
+/* apps/backoffice/src/platform.css — ПЛАТФОРМЕННЫЕ ИНТЕРФЕЙСЫ
+   Супер-админка вендора · админка аккаунтов · биллинг клиента · кабинет дилера.
+   Подключается ВМЕСТЕ с backoffice.css — использует его переменные и базовые
+   классы (.card, .btn, .doc-table, .money).
+   Стили сняты с макетов Claude Design второй волны:
+     · KPI-карточка: border + тень 0 1px 2px rgba(16,20,30,.04), padding 20–24
+     · крупная цифра метрики 32–40px, вес 700, letter-spacing −.02em
+     · подпись под метрикой 13px, --text-dim
+     · риск-строки с цветным левым бортом 4px
+     · служебный капс — моноширинный 11px / .08em */
+
+/* ══════════ ОБЩЕЕ ДЛЯ ПЛАТФОРМЫ ══════════ */
+.vendor-pulse, .client-health, .adm-page, .adm-card-page,
+.billing-screen, .dealer-cabinet { padding: 26px; max-width: 1180px; margin: 0 auto; }
+
+/* ══════════ ПУЛЬС ВЕНДОРА ══════════ */
+.pulse-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.pulse-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.pulse-card .money, .pulse-card > b { font-size: 32px; font-weight: 700; letter-spacing: -.02em; }
+.pulse-note { color: var(--text-dim); font-size: 13px; line-height: 1.45; }
+
+/* ══════════ ЗДОРОВЬЕ КЛИЕНТОВ ══════════ */
+.health-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.health-sub { color: var(--text-dim); font-size: 14px; margin-top: 4px; }
+
+.risk-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin: 18px 0; }
+.risk-kpi {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.risk-kpi.at-risk { border-color: var(--danger); background: var(--danger-soft); }
+.risk-money { font-size: 32px; font-weight: 700; letter-spacing: -.02em; color: var(--danger-deep); }
+.risk-share { font-size: 13px; color: var(--danger-deep); font-weight: 650; }
+.risk-note { font-size: 13px; color: var(--text-dim); }
+.risk-metric { font-variant-numeric: tabular-nums; font-weight: 650; font-size: 14px; }
+.risk-reason { font-size: 14px; font-weight: 650; }
+
+.lost-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.btn-call { background: var(--accent); border-color: var(--accent); color: #fff; height: 36px; font-size: 14px; }
+
+/* ══════════ АДМИНКА АККАУНТОВ ══════════ */
+.adm-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+.adm-kpi {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.adm-kpi-main { font-size: 32px; font-weight: 700; letter-spacing: -.02em; }
+.adm-kpi-warn .adm-kpi-main { color: var(--warn-deep); }
+.adm-hint, .adm-note { color: var(--text-dim); font-size: 13px; }
+
+.adm-filters { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+.adm-search { flex: 1; min-width: 220px; }
+.adm-table { width: 100%; margin: 0; }
+.adm-row td { vertical-align: middle; }
+.adm-r { text-align: right; }
+.adm-ch { text-align: center; }
+.adm-city { color: var(--text-dim); font-size: 13px; }
+.adm-count { font-variant-numeric: tabular-nums; font-weight: 650; }
+.adm-day { font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 13px; }
+
+.adm-badge {
+  font-size: 12px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-block;
+}
+.adm-badge.adm-ok { background: var(--ok-soft); color: var(--ok-deep); }
+.adm-badge.adm-warn { background: var(--warn-soft); color: var(--warn-deep); }
+.adm-badge.adm-imp { background: var(--danger-soft); color: var(--danger-deep); }
+.adm-ok { color: var(--ok-deep); }
+.adm-imp { color: var(--danger-deep); font-weight: 650; }
+.adm-st { font-size: 13px; font-weight: 650; }
+
+.adm-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 18px;
+}
+.adm-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.adm-block {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.adm-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.adm-mini { font-size: 13px; color: var(--text-dim); }
+.adm-inv { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+
+.adm-dunning { display: flex; flex-direction: column; gap: 12px; }
+.adm-warnlist { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.adm-reasons { display: flex; gap: 8px; flex-wrap: wrap; }
+.adm-rescue {
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.adm-sos-active { border-color: var(--danger); }
+
+/* ══════════ БИЛЛИНГ КЛИЕНТА ══════════ */
+.works-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.works-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; }
+.w-mark { color: var(--ok); font-weight: 700; flex: none; }
+.works-card {
+  background: var(--ok-soft);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plans-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.plan-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+}
+.plan-card.on { border-color: var(--accent); box-shadow: var(--shadow), var(--ring); }
+.plan-badge {
+  position: absolute;
+  top: -10px;
+  left: 22px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.plan-price { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+.plan-features { list-style: none; display: flex; flex-direction: column; gap: 7px; font-size: 14px; }
+.plan-note { color: var(--text-dim); font-size: 13px; }
+.plan-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--wash-soft);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+}
+.bill-pay { min-width: 220px; }
+
+.loc-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.loc-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  font-size: 14px;
+}
+
+/* блокировка по тарифу */
+.feature-lock {
+  background: var(--wash-soft);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 36px 24px;
+  text-align: center;
+  color: var(--text-dim);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.lock-icon { font-size: 26px; opacity: .6; }
+.lock-price { color: var(--accent-deep); font-weight: 650; font-size: 14px; }
+
+.downgrade-warn {
+  background: var(--warn-soft);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--warn-deep);
+}
+.dw-actions { display: flex; gap: 10px; }
+.defer-card {
+  background: var(--accent-soft);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  color: var(--accent-deep);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ══════════ КАБИНЕТ ДИЛЕРА ══════════ */
+.dealer-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.dealer-actions { display: flex; gap: 10px; }
+.dl-payout { font-size: 32px; font-weight: 700; letter-spacing: -.02em; color: var(--ok-deep); }
+.dl-subs { font-size: 13px; color: var(--text-dim); }
+.dl-note { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+.dl-tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-deep);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 650;
+}
+.tier-ladder { display: flex; flex-direction: column; gap: 8px; }
+.tier-next { font-size: 13px; color: var(--text-dim); }
+.payout-box {
+  background: var(--ok-soft);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stands-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.stand-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  font-size: 14px;
+}
+.stand-label { font-weight: 650; }
+
+
+/* ── статусы аккаунтов, счетов и здоровья (из admin.css) ── */
+.adm-h-healthy {background:var(--ok-soft);color:var(--ok)}
+.adm-h-watch {background:var(--warn-soft);color:var(--warn)}
+.adm-h-at_risk {background:#fde8d8;color:#c25e10}
+.adm-h-dying {background:var(--danger-soft);color:var(--danger)}
+.adm-st-active {background:var(--ok-soft);color:var(--ok)}
+.adm-st-trial {background:var(--accent-soft);color:var(--accent)}
+.adm-st-past_due {background:var(--warn-soft);color:var(--warn)}
+.adm-st-suspended,.adm-st-cancelled {background:var(--danger-soft);color:var(--danger)}
+.adm-inv-paid {color:var(--ok)}
+.adm-inv-issued {color:var(--warn)}
+.adm-inv-overdue {color:var(--danger)}
+
+/* ══════════ SERVICE DESK И МАТРИЦА ТАРИФОВ ══════════ */
+.tickets-screen, .feature-matrix { padding: 26px; max-width: 1180px; margin: 0 auto; }
+
+/* пользователь в подвале бокового меню */
+.vendor-user {
+  margin-top: 22px;
+  padding: 14px 12px 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.vendor-user b { font-size: 14px; font-weight: 650; }
+.vendor-user span { font-size: 12px; color: var(--text-dim); }
+.nav-count.nav-hot {
+  background: var(--danger-soft);
+  color: var(--danger-deep);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+/* баннер автодетекта массового инцидента (наша добавка) */
+.incident-alert {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  background: var(--warn-soft);
+  border: 1px solid var(--warn);
+  border-radius: var(--r-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+.incident-alert b { color: var(--warn-deep); font-size: 16px; }
+.incident-alert p { color: var(--warn-deep); font-size: 14px; margin-top: 5px; line-height: 1.5; }
+
+.ticket-kpis {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  margin: 18px 0;
+}
+.ticket-kpis .kpi b { font-size: 24px; }
+.kpi-bad { color: var(--danger-deep); }
+
+/* приоритеты */
+.prio { font-size: 13px; font-weight: 650; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+.prio-critical { background: var(--danger-soft); color: var(--danger-deep); }
+.prio-high { background: var(--warn-soft); color: var(--warn-deep); }
+.prio-normal { background: var(--wash); color: var(--text-dim); }
+.prio-low { background: var(--wash-soft); color: var(--text-dim); }
+
+/* бейджи инцидента */
+.inc-badge {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 2px 8px;
+  border-radius: 5px;
+  margin-left: 8px;
+  background: var(--wash);
+  color: var(--text-dim);
+}
+.inc-badge.inc-parent { background: var(--warn-soft); color: var(--warn-deep); }
+
+.link-cell {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: left;
+}
+.link-cell:hover { color: var(--accent-deep); }
+
+/* ячейка матрицы тарифов */
+.matrix-cell {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-xs);
+  background: var(--card);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 700;
+}
+.matrix-cell.matrix-on { background: var(--ok-soft); border-color: var(--ok); color: var(--ok-deep); }
+.matrix-cell.matrix-off { color: var(--line-strong); }
+.matrix-cell:hover { border-color: var(--accent); }

@@ -6,7 +6,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Ticket, sortQueue, slaTone, minutesToDeadline, overdueReaction, overdueResolve,
   detectMassIncident, supportStats, shouldEscalate, SLA,
-} from '../../api/src/platform/ticket.logic';
+} from '../../../packages/shared/src/platform/ticket.logic';
 
 const fmt = (t: number) => `${Math.trunc(t / 100).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;
 

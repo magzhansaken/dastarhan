@@ -9,11 +9,14 @@ COPY apps/backoffice ./apps/backoffice
 COPY apps/kds ./apps/kds
 COPY apps/courier ./apps/courier
 COPY apps/guest ./apps/guest
+COPY apps/admin ./apps/admin
+COPY apps/vendor ./apps/vendor
 RUN pnpm install --no-frozen-lockfile
 RUN cd apps/backoffice && pnpm exec vite build --base=/office/
 RUN cd apps/kds && pnpm exec vite build --base=/kds/
 RUN cd apps/courier && pnpm exec vite build --base=/courier/
 RUN cd apps/guest && pnpm exec vite build --base=/menu/
+RUN cd apps/admin && pnpm exec vite build --base=/admin/
 
 FROM alpine
 RUN apk add --no-cache rsync
@@ -21,6 +24,7 @@ COPY --from=build /build/apps/backoffice/dist /dist/office
 COPY --from=build /build/apps/kds/dist /dist/kds
 COPY --from=build /build/apps/courier/dist /dist/courier
 COPY --from=build /build/apps/guest/dist /dist/menu
+COPY --from=build /build/apps/admin/dist /dist/admin
 # Без --delete: том смонтирован в папку сайта, и удаление снесло бы
 # все страницы. Копируем только свои подпапки, каждую с очисткой внутри
-CMD ["sh", "-c", "for d in office kds courier menu; do rsync -a --delete /dist/$d/ /out/$d/; done && echo 'Собрано: office, kds, courier, menu'"]
+CMD ["sh", "-c", "for d in office kds courier menu admin; do rsync -a --delete /dist/$d/ /out/$d/; done && echo 'Собрано: office, kds, courier, menu, admin'"]

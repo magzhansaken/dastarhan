@@ -33,6 +33,11 @@
 		try_files {path} /menu/index.html
 		file_server
 	}
+	handle /admin/* {
+		root * /srv
+		try_files {path} /admin/index.html
+		file_server
+	}
 
 	# Сайт
 	handle {
