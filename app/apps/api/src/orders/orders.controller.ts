@@ -335,4 +335,153 @@ async function persistState(prisma: PrismaService, orderId: string, s: OrderStat
       total: o.total,
     }));
   }
+
+  /**
+   * Разбить счёт по гостям. Компания просит «каждый за себя» —
+   * система делит позиции, а не сумму пополам.
+   *
+   * Делить сумму поровну нельзя: один взял чай, другой бешбармак
+   * с водкой. Поэтому режем по позициям, а неделимое — по числу гостей.
+   */
+  @Post(':id/split')
+  @RequirePermission('order.split')
+  async split(
+    @Param('id') orderId: string,
+    @Body() dto: { parts: { itemIds: string[]; guestNo: number }[] },
+    @Req() req: any,
+  ) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: { where: { isRemoved: false } } },
+    });
+    if (!order) throw new NotFoundException({ code: 'ORDER_NOT_FOUND' });
+    if (order.status !== 'OPEN') throw new BadRequestException({ code: 'ORDER_CLOSED' });
+    if (dto.parts.length < 2) throw new BadRequestException({ code: 'NEED_TWO_PARTS' });
+
+    // Все позиции должны попасть ровно в одну часть: если что-то
+    // забыли, счёт не сойдётся, и кассир будет искать разницу
+    const assigned = dto.parts.flatMap((p) => p.itemIds);
+    const all = order.items.map((i) => i.id);
+    const missing = all.filter((id) => !assigned.includes(id));
+    if (missing.length) {
+      const names = order.items.filter((i) => missing.includes(i.id)).map((i) => i.nameSnapshot);
+      throw new BadRequestException({
+        code: 'ITEMS_UNASSIGNED',
+        message: `Не распределены: ${names.join(', ')}`,
+      });
+    }
+    if (new Set(assigned).size !== assigned.length) {
+      throw new BadRequestException({ code: 'ITEM_DUPLICATED' });
+    }
+
+    const last = await this.prisma.order.findFirst({
+      where: { locationId: order.locationId },
+      orderBy: { number: 'desc' },
+      select: { number: true },
+    });
+    let nextNumber = (last?.number ?? 0) + 1;
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const out = [];
+      // Первая часть остаётся в исходном заказе — так номер счёта
+      // не меняется, и гость с чеком в руках не путается
+      for (let idx = 1; idx < dto.parts.length; idx++) {
+        const part = dto.parts[idx];
+        const items = order.items.filter((i) => part.itemIds.includes(i.id));
+        const sum = items.reduce((s, i) => s + Number(i.qty) * i.unitPrice, 0);
+
+        const child = await tx.order.create({
+          data: {
+            accountId: order.accountId,
+            locationId: order.locationId,
+            terminalId: order.terminalId,
+            shiftId: order.shiftId,
+            number: nextNumber++,
+            mode: order.mode,
+            status: 'OPEN',
+            tableId: order.tableId,
+            guestsCount: 1,
+            waiterId: order.waiterId,
+            openedAt: order.openedAt,
+            subtotal: sum, discount: 0, total: sum,
+            comment: `Разделён из №${order.number}`,
+          },
+        });
+
+        await tx.orderItem.updateMany({
+          where: { id: { in: part.itemIds } },
+          data: { orderId: child.id, guestNo: part.guestNo },
+        });
+
+        out.push({ orderId: child.id, number: child.number, total: sum, items: items.length });
+      }
+
+      // Пересчитываем остаток в исходном
+      const firstItems = order.items.filter((i) => dto.parts[0].itemIds.includes(i.id));
+      const firstSum = firstItems.reduce((s, i) => s + Number(i.qty) * i.unitPrice, 0);
+      await tx.order.update({
+        where: { id: orderId },
+        data: { subtotal: firstSum, total: firstSum },
+      });
+
+      await tx.eventLog.create({
+        data: {
+          eventId: randomUUID(),
+          accountId: order.accountId,
+          terminalId: order.terminalId,
+          type: 'order.split',
+          payload: { orderId, parts: dto.parts.length, byUserId: req.user.sub },
+          createdAt: new Date(),
+        },
+      }).catch(() => null);
+
+      return out;
+    });
+
+    return {
+      ok: true,
+      original: { orderId, number: order.number },
+      created,
+      hint: 'Каждый счёт оплачивается отдельно',
+    };
+  }
+
+  /**
+   * Предложение разбивки по гостям: система сама раскладывает
+   * позиции по номерам гостей, если официант их проставлял.
+   * Кассиру остаётся подтвердить, а не тыкать каждое блюдо.
+   */
+  @Get(':id/split-suggest')
+  @RequirePermission('order.split')
+  async splitSuggest(@Param('id') orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: { where: { isRemoved: false } } },
+    });
+    if (!order) throw new NotFoundException({ code: 'ORDER_NOT_FOUND' });
+
+    const byGuest = new Map<number, typeof order.items>();
+    for (const i of order.items) {
+      const g = i.guestNo ?? 1;
+      const arr = byGuest.get(g) ?? [];
+      arr.push(i);
+      byGuest.set(g, arr);
+    }
+
+    return {
+      guestsCount: order.guestsCount,
+      // Если все позиции на одном госте — официант их не разделял,
+      // и разбивку придётся делать руками
+      canAutoSplit: byGuest.size > 1,
+      parts: [...byGuest.entries()].map(([guestNo, items]) => ({
+        guestNo,
+        itemIds: items.map((i) => i.id),
+        names: items.map((i) => i.nameSnapshot),
+        total: items.reduce((s, i) => s + Number(i.qty) * i.unitPrice, 0),
+      })),
+      // Равные доли — запасной вариант, когда позиции общие
+      equalShare: order.guestsCount > 1
+        ? Math.round(order.total / order.guestsCount) : order.total,
+    };
+  }
 }
