@@ -539,4 +539,287 @@ export class SupplyController {
         : 'Запасов хватает',
     };
   }
+
+  /**
+   * Приёмка по заявке: сверяем заказанное с привезённым.
+   *
+   * Поставщик привозит не то, что заказали, и это норма рынка.
+   * Кладовщик подписывает накладную не глядя, а через месяц
+   * владелец видит, что платит за товар, которого не было.
+   */
+  @Get('requests/:id/receive-sheet')
+  @RequirePermission('stock.supply')
+  async receiveSheet(@Param('id') id: string) {
+    const req = await this.prisma.supplyRequest.findUnique({
+      where: { id },
+      include: { lines: true, supplier: true },
+    });
+    if (!req) throw new NotFoundException({ code: 'REQUEST_NOT_FOUND' });
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: req.lines.map((l) => l.productId) } },
+      select: { id: true, name: true, unit: true },
+    });
+    const byId = new Map(products.map((p) => [p.id, p]));
+
+    // Прошлые цены: кладовщик должен заметить подорожание
+    // в момент приёмки, а не через месяц в отчёте
+    const lastPrices = new Map<string, number>();
+    for (const l of req.lines) {
+      const move = await this.prisma.stockMovement.findFirst({
+        where: { productId: l.productId, qtyDelta: { gt: 0 } },
+        orderBy: { at: 'desc' },
+        select: { unitCost: true },
+      });
+      if (move) lastPrices.set(l.productId, move.unitCost);
+    }
+
+    return {
+      requestId: req.id,
+      number: req.number,
+      supplier: { name: req.supplier.name, phone: req.supplier.phone },
+      expectedAt: req.expectedAt,
+      rows: req.lines.map((l) => {
+        const p = byId.get(l.productId);
+        return {
+          productId: l.productId,
+          name: p?.name ?? '—',
+          unit: p?.unit ?? null,
+          orderedQty: Number(l.qty),
+          receivedQty: Number(l.receivedQty),
+          lastPrice: lastPrices.get(l.productId) ?? null,
+        };
+      }),
+      hint: 'Взвесьте и пересчитайте до подписи накладной',
+    };
+  }
+
+  /**
+   * Провести приёмку с расхождениями.
+   * Каждое расхождение фиксируется — по ним потом разговаривают
+   * с поставщиком, а не «мне кажется, вы недовозите».
+   */
+  @Post('requests/:id/receive')
+  @RequirePermission('stock.supply')
+  async receive(
+    @Param('id') id: string,
+    @Body() dto: {
+      warehouseId: string;
+      lines: { productId: string; qty: number; price: number; note?: string }[];
+    },
+    @Req() reqUser: any,
+  ) {
+    const request = await this.prisma.supplyRequest.findUnique({
+      where: { id },
+      include: { lines: true, supplier: true },
+    });
+    if (!request) throw new NotFoundException({ code: 'REQUEST_NOT_FOUND' });
+
+    const orderedBy = new Map(request.lines.map((l) => [l.productId, Number(l.qty)]));
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: dto.lines.map((l) => l.productId) } },
+      select: { id: true, name: true },
+    });
+    const nameBy = new Map(products.map((p) => [p.id, p.name]));
+
+    const discrepancies: {
+      kind: 'short' | 'over' | 'extra' | 'price_up';
+      name: string; text: string; money?: number;
+    }[] = [];
+
+    // Недовоз и перевоз
+    for (const l of dto.lines) {
+      const ordered = orderedBy.get(l.productId);
+      const name = nameBy.get(l.productId) ?? '—';
+
+      if (ordered === undefined) {
+        discrepancies.push({
+          kind: 'extra', name,
+          text: `${name} не заказывали — привезли ${l.qty}`,
+          money: Math.round(l.qty * l.price),
+        });
+      } else if (l.qty < ordered * 0.98) {
+        const short = +(ordered - l.qty).toFixed(3);
+        discrepancies.push({
+          kind: 'short', name,
+          text: `${name}: заказывали ${ordered}, привезли ${l.qty} — недовоз ${short}`,
+          money: Math.round(short * l.price),
+        });
+      } else if (l.qty > ordered * 1.02) {
+        discrepancies.push({
+          kind: 'over', name,
+          text: `${name}: привезли ${l.qty} вместо ${ordered}`,
+          money: Math.round((l.qty - ordered) * l.price),
+        });
+      }
+
+      // Подорожание больше десяти процентов — повод спросить
+      // до подписи, а не после оплаты
+      const last = await this.prisma.stockMovement.findFirst({
+        where: { productId: l.productId, qtyDelta: { gt: 0 } },
+        orderBy: { at: 'desc' },
+        select: { unitCost: true },
+      });
+      if (last && last.unitCost > 0) {
+        const growth = Math.round(((l.price - last.unitCost) / last.unitCost) * 100);
+        if (growth >= 10) {
+          discrepancies.push({
+            kind: 'price_up', name,
+            text: `${name} подорожал на ${growth}%: было ${Math.trunc(last.unitCost / 100)} ₸, стало ${Math.trunc(l.price / 100)} ₸`,
+          });
+        }
+      }
+    }
+
+    // Совсем не привезли
+    for (const [productId, qty] of orderedBy) {
+      if (!dto.lines.some((l) => l.productId === productId)) {
+        discrepancies.push({
+          kind: 'short',
+          name: nameBy.get(productId) ?? '—',
+          text: `${nameBy.get(productId) ?? 'Товар'} не привезли вовсе — заказывали ${qty}`,
+        });
+      }
+    }
+
+    const total = dto.lines.reduce((s, l) => s + l.qty * l.price, 0);
+
+    const last = await this.prisma.stockDoc.findFirst({
+      where: { accountId: reqUser.user.acc },
+      orderBy: { number: 'desc' },
+      select: { number: true },
+    });
+
+    const doc = await this.prisma.$transaction(async (tx) => {
+      const wh = await tx.warehouse.findUnique({ where: { id: dto.warehouseId } });
+      const d = await tx.stockDoc.create({
+        data: {
+          accountId: reqUser.user.acc,
+          locationId: wh?.locationId ?? request.locationId,
+          type: 'SUPPLY',
+          status: 'DRAFT',
+          number: (last?.number ?? 0) + 1,
+          warehouseId: dto.warehouseId,
+          supplierId: request.supplierId,
+          note: `По заявке №${request.number}`,
+          createdBy: reqUser.user.sub,
+          lines: {
+            create: dto.lines.map((l, idx) => ({
+              productId: l.productId,
+              qty: l.qty as any,
+              unitCost: l.price,
+              sortOrder: idx,
+            })),
+          },
+        },
+      });
+
+      for (const l of dto.lines) {
+        const rl = request.lines.find((x) => x.productId === l.productId);
+        if (rl) {
+          await tx.supplyRequestLine.update({
+            where: { id: rl.id },
+            data: { receivedQty: l.qty as any },
+          });
+        }
+      }
+
+      const allFull = request.lines.every((rl) => {
+        const got = dto.lines.find((l) => l.productId === rl.productId);
+        return got && got.qty >= Number(rl.qty) * 0.98;
+      });
+
+      await tx.supplyRequest.update({
+        where: { id },
+        data: {
+          status: allFull ? 'RECEIVED' : 'PARTIAL',
+          closedAt: allFull ? new Date() : null,
+        },
+      });
+
+      return d;
+    });
+
+    const shortMoney = discrepancies
+      .filter((d) => d.kind === 'short')
+      .reduce((s, d) => s + (d.money ?? 0), 0);
+
+    return {
+      docId: doc.id,
+      docNumber: doc.number,
+      total,
+      discrepancies,
+      shortMoney,
+      // Документ создан черновиком: кладовщик проверяет цифры
+      // и проводит отдельным действием. Провести случайно нельзя
+      status: 'DRAFT',
+      hint: discrepancies.length
+        ? `Найдено расхождений: ${discrepancies.length} — покажите поставщику до подписи`
+        : 'Всё совпало с заявкой — можно проводить',
+    };
+  }
+
+  /**
+   * Надёжность поставщиков: кто возит вовремя и полностью.
+   * Цифры вместо ощущений при выборе, с кем работать.
+   */
+  @Get('suppliers/reliability')
+  @RequirePermission('stock.supply')
+  async reliability(@Req() req: any, @Query('days') days = '90') {
+    const from = new Date();
+    from.setDate(from.getDate() - Number(days));
+
+    const requests = await this.prisma.supplyRequest.findMany({
+      where: {
+        accountId: req.user.acc,
+        createdAt: { gte: from },
+        status: { in: ['RECEIVED', 'PARTIAL'] },
+      },
+      include: { lines: true, supplier: true },
+    });
+
+    const bySupplier = new Map<string, {
+      name: string; phone: string | null;
+      total: number; full: number; late: number; shortLines: number; allLines: number;
+    }>();
+
+    for (const r of requests) {
+      const cur = bySupplier.get(r.supplierId) ?? {
+        name: r.supplier.name, phone: r.supplier.phone,
+        total: 0, full: 0, late: 0, shortLines: 0, allLines: 0,
+      };
+      cur.total++;
+      if (r.status === 'RECEIVED') cur.full++;
+      if (r.expectedAt && r.closedAt && r.closedAt > r.expectedAt) cur.late++;
+      for (const l of r.lines) {
+        cur.allLines++;
+        if (Number(l.receivedQty) < Number(l.qty) * 0.98) cur.shortLines++;
+      }
+      bySupplier.set(r.supplierId, cur);
+    }
+
+    const rows = [...bySupplier.entries()].map(([id, v]) => ({
+      supplierId: id,
+      name: v.name,
+      phone: v.phone,
+      deliveries: v.total,
+      fullPct: v.total ? Math.round((v.full / v.total) * 100) : 0,
+      latePct: v.total ? Math.round((v.late / v.total) * 100) : 0,
+      shortLinesPct: v.allLines ? Math.round((v.shortLines / v.allLines) * 100) : 0,
+      // Оценка одним числом: комплектность минус штраф за опоздания
+      score: v.total
+        ? Math.max(0, Math.round((v.full / v.total) * 100 - (v.late / v.total) * 30))
+        : 0,
+    })).sort((a, b) => b.score - a.score);
+
+    return {
+      periodDays: Number(days),
+      rows,
+      best: rows[0] ?? null,
+      worst: rows.length > 1 ? rows[rows.length - 1] : null,
+      note: rows.length > 1 && rows[rows.length - 1].score < 60
+        ? `${rows[rows.length - 1].name} возит хуже других — поищите замену`
+        : null,
+    };
+  }
 }
