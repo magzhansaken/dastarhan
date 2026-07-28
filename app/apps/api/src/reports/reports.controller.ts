@@ -19,7 +19,8 @@ export class ReportsController {
    */
   @Get('dashboard')
   @RequirePermission('reports.view')
-  async dashboard(@Query('locationId') locationId?: string) {
+  async dashboard(
+    @Query('period') period?: 'day' | 'week' | 'month',@Query('locationId') locationId?: string) {
     const now = new Date();
     const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
     const ydayStart = new Date(todayStart); ydayStart.setDate(ydayStart.getDate() - 1);

@@ -207,6 +207,8 @@ function Office({ token, onOut }: { token: string; onOut: () => void }) {
   const onb = JSON.parse(localStorage.getItem(ONB_KEY) ?? '{}');
   const [tab, setTab] = useState(onb.finished ? 'dash' : 'setup');
   const [dash, setDash] = useState<any>(null);
+  const [hours, setHours] = useState<any>(null);
+  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('day');
   const [err, setErr] = useState(false);
 
   useEffect(() => {
@@ -215,6 +217,12 @@ function Office({ token, onOut }: { token: string; onOut: () => void }) {
       .then((d) => d ? setDash(d) : setErr(true))
       .catch(() => setErr(true));
   }, [token]);
+
+  useEffect(() => {
+    fetch(`${API}/reports/by-hour?period=${period}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => (r.ok ? r.json() : null)).then(setHours).catch(() => null);
+  }, [token, period]);
 
   return (
     <div className="bo-layout">
@@ -235,7 +243,8 @@ function Office({ token, onOut }: { token: string; onOut: () => void }) {
       <main style={{ padding: 26 }}>
         {tab === 'dash' && (
           err ? <div className="state-empty"><b>Не удалось загрузить</b><span>Проверьте связь</span></div>
-          : dash ? <Dashboard data={dash} period="day" onPeriod={() => {}} onReport={() => {}} />
+          : dash ? <Dashboard data={{ ...dash, byHour: hours?.hours ?? [], peakHour: hours?.peakHour }}
+              period={period} onPeriod={setPeriod} onReport={() => {}} />
           : <div className="label-mono">Загружаем…</div>
         )}
         {tab === 'stock' && <StockView token={token} />}
