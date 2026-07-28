@@ -2026,3 +2026,46 @@ enum TransferStatus {
   PARTIAL    // принято с расхождением
   CANCELLED
 }
+
+/// Ключ доступа к API для интеграторов: сайт, приложение,
+/// программа лояльности партнёра.
+///
+/// Права ограничены явно — интегратор для сайта не должен
+/// иметь доступ к зарплатам и себестоимости.
+model ApiKey {
+  id          String   @id @default(cuid())
+  accountId   String
+  name        String                    // «Сайт доставки», «Приложение»
+  /// Хеш ключа, а не сам ключ: утечка базы не даёт доступа
+  keyHash     String   @unique
+  /// Первые символы для опознания в списке: dstr_a1b2...
+  keyPrefix   String
+  scopes      String[] @default([])
+  locationId  String?                   // ограничение по точке
+  isActive    Boolean  @default(true)
+  lastUsedAt  DateTime?
+  /// Лимит запросов в минуту: чужая ошибка не должна класть
+  /// сервер всем остальным
+  rateLimit   Int      @default(60)
+  expiresAt   DateTime?
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  calls       ApiCall[]
+
+  @@index([accountId, isActive])
+}
+
+/// Журнал вызовов: видно, что делает интегратор и не сломался ли он.
+model ApiCall {
+  id        String   @id @default(cuid())
+  keyId     String
+  key       ApiKey   @relation(fields: [keyId], references: [id], onDelete: Cascade)
+  method    String
+  path      String
+  status    Int
+  durationMs Int
+  at        DateTime @default(now())
+
+  @@index([keyId, at])
+}
