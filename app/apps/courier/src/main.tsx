@@ -2,6 +2,7 @@
 // и постоянно видимый долг наличных.
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
+import './courier.css';
 import { CourierApp } from './CourierApp';
 
 const API = '/api/v1';

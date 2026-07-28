@@ -71,7 +71,9 @@ export class GuestController {
       // Блюда в стопе гостю не показываем вовсе: увидеть недоступное
       // и расстроиться хуже, чем не увидеть
       items: products
-        .filter((p) => !stopped.has(p.id))
+        // Гостю не показываем стопы и позиции с нулевой ценой:
+        // «Стакан бумажный · 0 ₸» — это расходник, а не блюдо
+        .filter((p) => !stopped.has(p.id) && (priceBy.get(p.id) ?? p.basePrice) > 0)
         .map((p) => ({
           productId: p.id,
           name: p.name,

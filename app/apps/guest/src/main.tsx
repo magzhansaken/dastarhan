@@ -1,6 +1,7 @@
 // QR-меню гостя. Открывается по ссылке со стола, авторизации нет.
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
+import './guest.css';
 import { GuestMenuPage, buildTableOrder } from './GuestMenu';
 
 const API = '/api/v1';

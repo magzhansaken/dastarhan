@@ -2,6 +2,7 @@
 // и касается мокрыми руками — крупные цели, минимум текста.
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
+import './kds.css';
 import { KdsScreen } from './KdsScreen';
 
 const API = '/api/v1';
