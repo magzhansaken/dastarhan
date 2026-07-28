@@ -5,7 +5,10 @@
 // Ключевое решение: остатки МОГУТ быть отрицательными и мы их не прячем.
 // Минус означает «продали больше, чем оприходовали» — это сигнал о том,
 // что забыли провести накладную. Скрыть его значит потерять деньги молча.
-import { Body, Controller, Get, Post, Query, UseGuards, Req } from '@nestjs/common';
+import {
+  Body, Controller, Get, Post, Query, UseGuards, Req, Param,
+  BadRequestException, NotFoundException,
+} from '@nestjs/common';
 import { IsArray, IsIn, IsOptional, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PrismaService } from '../core/prisma.service';
@@ -140,6 +143,86 @@ export class StockController {
     });
 
     return { id: doc.id, number: doc.number, status: doc.status, lines: doc.lines.length };
+  }
+
+  /**
+   * Проведение документа: только здесь двигаются остатки.
+   * До проведения документ — черновик, кладовщик может править его сколько
+   * угодно. Это защита от половины накладной, случайно улетевшей в учёт.
+   */
+  @Post('docs/:id/post')
+  @RequirePermission('stock.supply')
+  async postDoc(@Param('id') id: string, @Req() req: any) {
+    const doc = await this.prisma.stockDoc.findFirst({
+      where: { id, accountId: req.user.acc },
+      include: { lines: true },
+    });
+    if (!doc) throw new NotFoundException({ code: 'DOC_NOT_FOUND' });
+    if (doc.status === 'POSTED') return { alreadyPosted: true, id: doc.id };
+    if (doc.status === 'VOIDED') throw new BadRequestException({ code: 'DOC_VOIDED' });
+    if (!doc.lines.length) throw new BadRequestException({ code: 'DOC_EMPTY' });
+
+    // Знак движения зависит от типа: приход добавляет, списание убирает
+    const sign = doc.type === 'SUPPLY' || doc.type === 'SURPLUS' || doc.type === 'PRODUCTION'
+      ? 1 : -1;
+
+    await this.prisma.$transaction(async (tx) => {
+      for (const line of doc.lines) {
+        const qty = Number(line.qty);
+        if (qty <= 0) continue;
+
+        const bal = await tx.stockBalance.findFirst({
+          where: { warehouseId: doc.warehouseId, productId: line.productId },
+        });
+        const curQty = bal ? Number(bal.qty) : 0;
+        const curAvg = bal?.avgCost ?? 0;
+        const nextQty = curQty + sign * qty;
+
+        // Скользящая средневзвешенная. При минусовом остатке средняя
+        // сбрасывается на цену прихода: иначе минус отравляет расчёт
+        // себестоимости на месяцы вперёд
+        let nextAvg = curAvg;
+        if (sign > 0) {
+          nextAvg = curQty <= 0
+            ? (line.unitCost ?? 0)
+            : Math.round((curQty * curAvg + qty * (line.unitCost ?? 0)) / (curQty + qty));
+        }
+
+        if (bal) {
+          await tx.stockBalance.update({
+            where: { id: bal.id },
+            data: { qty: nextQty, avgCost: nextAvg },
+          });
+        } else {
+          await tx.stockBalance.create({
+            data: {
+              warehouseId: doc.warehouseId,
+              productId: line.productId,
+              qty: nextQty,
+              avgCost: nextAvg,
+            },
+          });
+        }
+
+        await tx.stockMovement.create({
+          data: {
+            accountId: doc.accountId,
+            warehouseId: doc.warehouseId,
+            productId: line.productId,
+            docId: doc.id,
+            qtyDelta: sign * qty,
+            unitCost: line.unitCost ?? curAvg,
+          },
+        });
+      }
+
+      await tx.stockDoc.update({
+        where: { id: doc.id },
+        data: { status: 'POSTED', postedAt: new Date() },
+      });
+    });
+
+    return { posted: true, id: doc.id, lines: doc.lines.length, type: doc.type };
   }
 
   /** Открытая смена точки — касса спрашивает при старте. */
