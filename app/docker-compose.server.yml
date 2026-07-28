@@ -45,12 +45,14 @@ services:
   # Сборщик бэк-офиса: запускается вручную командой
   #   docker compose -f docker-compose.server.yml run --rm office
   # и кладёт статику в папку сайта
-  office:
+  # Сборка всех веб-приложений сразу: бэк-офис, KDS, курьер, меню.
+  # Запуск: docker compose -f docker-compose.server.yml --profile tools run --rm apps
+  apps:
     build:
       context: .
-      dockerfile: Dockerfile.office
+      dockerfile: Dockerfile.apps
     volumes:
-      - /opt/dastarhan/site/office:/out
+      - /opt/dastarhan/site:/out
     profiles: ["tools"]
 
 volumes:

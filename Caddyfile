@@ -11,10 +11,26 @@
 		reverse_proxy dastarhan-api:3000
 	}
 
-	# Бэк-офис (соберём на этапе 2)
+	# Веб-приложения: каждое — SPA, поэтому неизвестный путь
+	# отдаём на index.html, чтобы работала внутренняя навигация
 	handle /office/* {
 		root * /srv
 		try_files {path} /office/index.html
+		file_server
+	}
+	handle /kds/* {
+		root * /srv
+		try_files {path} /kds/index.html
+		file_server
+	}
+	handle /courier/* {
+		root * /srv
+		try_files {path} /courier/index.html
+		file_server
+	}
+	handle /menu/* {
+		root * /srv
+		try_files {path} /menu/index.html
 		file_server
 	}
 
