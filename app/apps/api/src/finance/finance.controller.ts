@@ -72,7 +72,10 @@ export class FinanceController {
         .map(([name, amount]) => ({ name, amount }))
         .sort((a, b) => b.amount - a.amount),
       tax,
-      taxRate: 3,
+      // Ставка налога из аккаунта: упрощёнка 3%, но у розничного
+      // налога и общего режима свои правила
+      taxRate: Number(account?.turnoverTaxRate ?? 3),
+      taxMode: account?.taxMode ?? 'SIMPLIFIED',
       net,
       marginPct: revenue > 0 ? +((100 * net) / revenue).toFixed(1) : 0,
     };

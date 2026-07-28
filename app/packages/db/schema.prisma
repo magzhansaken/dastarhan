@@ -24,6 +24,15 @@ enum BusinessVertical {
 
 model Account {
   id        String   @id @default(cuid())
+  /// Налоговый режим заведения. В Казахстане большинство ИП
+  /// на упрощёнке — 3% с оборота, без НДС. Крупные ТОО платят НДС.
+  taxMode   TaxMode  @default(SIMPLIFIED)
+  /// Ставка НДС. С 2026 года в РК — 16% вместо 12%.
+  /// Хранится в аккаунте, а не в коде: смена ставки не должна
+  /// требовать обновления программы у всех клиентов
+  vatRate   Int      @default(16)
+  /// Ставка налога с оборота для упрощёнки
+  turnoverTaxRate Decimal @default(3)
   name      String
   vertical  BusinessVertical @default(CAFE)
   // Казахстан-поля с 1-го дня (урок Paloma/Poster: локализация = ядро, не плагин)
@@ -1645,4 +1654,10 @@ model StockLimit {
 
   @@unique([warehouseId, productId])
   @@index([warehouseId])
+}
+
+enum TaxMode {
+  SIMPLIFIED  // упрощёнка: 3% с оборота, НДС не выделяется
+  VAT         // общий режим: НДС в чеке
+  RETAIL      // розничный налог
 }

@@ -99,7 +99,9 @@ export class OrdersController {
     const items = order.items.filter((i: any) => !i.isRemoved).map((i: any) => ({
       name: i.nameSnapshot, qty: Number(i.qty),
       price: i.unitPrice + (i.modifiers?.reduce?.((s: number, m: any) => s + (m.priceDelta ?? 0), 0) ?? 0),
-      vatRate: 16,
+      // Ставка из настроек аккаунта: с 2026 года в РК 16% вместо 12%,
+      // и смена ставки не должна требовать обновления программы
+      vatRate: account?.taxMode === 'VAT' ? (account.vatRate ?? 16) : 0,
     }));
     const req = {
       op: 'SELL' as const, items,
