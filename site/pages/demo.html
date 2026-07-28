@@ -140,15 +140,72 @@
       <div class="eyebrow">Живое демо · без регистрации</div>
       <h2>Пробейте чек сами — прямо здесь</h2>
     </div>
-    <div class="card" style="max-width:520px;margin:0 auto">
-      <div class="eyebrow">Стол 4 · демо</div>
-      <p class="lead" style="margin:12px 0"><b>Чек пустой</b><br>Нажмите блюдо справа — оно попадёт сюда</p>
-      <p class="hint">Демо-точка · чеки не фискализируются</p>
-      <div class="cta-btns" style="margin-top:16px">
-        <a class="btn btn-primary" href="register.html">Заведите свою за 15 минут</a>
-        <a class="btn btn-ghost" href="#">Пройти демо заново</a>
+    <div class="demo-pos">
+      <div class="demo-check">
+        <div class="eyebrow">Стол 4 · демо</div>
+        <div id="demo-items" class="demo-items">
+          <p class="hint" id="demo-empty">Чек пустой<br>Нажмите блюдо справа — оно попадёт сюда</p>
+        </div>
+        <div class="demo-total">
+          <span>Итого</span>
+          <b id="demo-sum">0 ₸</b>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="demoPay()">Оплата</button>
+      </div>
+      <div class="demo-menu">
+        <div class="demo-tiles">
+          <button class="demo-tile" onclick="demoAdd('Бешбармак',250000)"><b>Бешбармак</b><span>2 500 ₸</span></button>
+          <button class="demo-tile" onclick="demoAdd('Плов',250000)"><b>Плов</b><span>2 500 ₸</span></button>
+          <button class="demo-tile" onclick="demoAdd('Лагман',220000)"><b>Лагман</b><span>2 200 ₸</span></button>
+          <button class="demo-tile" onclick="demoAdd('Самса',60000)"><b>Самса</b><span>600 ₸</span></button>
+          <button class="demo-tile" onclick="demoAdd('Чай',50000)"><b>Чай</b><span>500 ₸</span></button>
+          <button class="demo-tile" onclick="demoAdd('Капучино',150000)"><b>Капучино</b><span>1 500 ₸</span></button>
+        </div>
       </div>
     </div>
+    <p class="hint" style="text-align:center;margin-top:14px">Демо-точка · чеки не фискализируются</p>
+    <div class="cta-btns" style="justify-content:center;margin-top:14px">
+      <a class="btn btn-primary" href="register.html">Заведите свою за 15 минут</a>
+      <button class="btn btn-ghost" onclick="demoReset()">Пройти демо заново</button>
+    </div>
+
+<script>
+// Живое демо кассы: гость нажимает блюда и видит, как считается чек.
+// Без регистрации и установки — это главный аргумент на сайте.
+var demoCart = [];
+function demoFmt(t) { return Math.trunc(t / 100).toLocaleString('ru-RU').replace(/\u00A0/g,' ') + ' ₸'; }
+function demoRender() {
+  var box = document.getElementById('demo-items');
+  var empty = document.getElementById('demo-empty');
+  var rows = box.querySelectorAll('.demo-row');
+  rows.forEach(function(r){ r.remove(); });
+  if (!demoCart.length) { empty.style.display = 'block'; }
+  else {
+    empty.style.display = 'none';
+    demoCart.forEach(function(it, i) {
+      var d = document.createElement('div');
+      d.className = 'demo-row';
+      d.innerHTML = '<span>' + it.name + ' ×' + it.qty + '</span><b>' + demoFmt(it.price * it.qty) + '</b>';
+      d.onclick = function(){ demoCart.splice(i,1); demoRender(); };
+      box.appendChild(d);
+    });
+  }
+  var sum = demoCart.reduce(function(s,x){ return s + x.price * x.qty; }, 0);
+  document.getElementById('demo-sum').textContent = demoFmt(sum);
+}
+function demoAdd(name, price) {
+  var f = demoCart.find(function(x){ return x.name === name; });
+  if (f) f.qty++; else demoCart.push({ name: name, price: price, qty: 1 });
+  demoRender();
+}
+function demoPay() {
+  var sum = demoCart.reduce(function(s,x){ return s + x.price * x.qty; }, 0);
+  if (!sum) { alert('Добавьте блюдо в чек'); return; }
+  alert('Чек на ' + demoFmt(sum) + ' пробит. В настоящей кассе он уйдёт в Webkassa и спишет продукты со склада.');
+  demoCart = []; demoRender();
+}
+function demoReset() { demoCart = []; demoRender(); }
+</script>
   </div>
 </section>
 

@@ -481,3 +481,42 @@ input[type="range"] { width: 100%; accent-color: var(--accent); height: 26px; }
   box-shadow: 0 8px 24px rgba(232, 131, 58, .12);
 }
 .plan-popular .eyebrow { color: var(--accent); }
+
+/* ══════════ ЖИВОЕ ДЕМО КАССЫ ══════════
+   Две колонки как в настоящей кассе: чек слева, меню справа.
+   Владелец нажимает сам и видит, как считается сумма. */
+.demo-pos {
+  display: grid; grid-template-columns: 260px 1fr; gap: 14px;
+  max-width: 720px; margin: 0 auto;
+  background: #12141a; border-radius: 16px; padding: 14px;
+}
+.demo-check { display: flex; flex-direction: column; gap: 10px; }
+.demo-check .eyebrow { color: #9aa3b2; }
+.demo-items { flex: 1; min-height: 130px; display: flex; flex-direction: column; gap: 6px; }
+.demo-items .hint { color: #9aa3b2; font-size: 13px; line-height: 1.5; }
+.demo-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 10px; border-radius: 8px; background: #1c1f27;
+  color: #f2f4f8; font-size: 14px; cursor: pointer;
+}
+.demo-row:hover { background: #262a35; }
+.demo-total {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding-top: 10px; border-top: 1px solid #262a35; color: #9aa3b2;
+}
+.demo-total b { font-size: 26px; color: #f2f4f8; font-variant-numeric: tabular-nums; }
+
+.demo-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.demo-tile {
+  display: flex; flex-direction: column; justify-content: space-between;
+  min-height: 76px; padding: 10px; text-align: left;
+  background: #1c1f27; border: 1px solid #262a35; border-radius: 12px;
+  color: #f2f4f8; font-size: 14px; cursor: pointer;
+}
+.demo-tile:hover { background: #262a35; border-color: #e8833a; }
+.demo-tile span { color: #e8833a; font-weight: 700; }
+
+@media (max-width: 620px) {
+  .demo-pos { grid-template-columns: 1fr; }
+  .demo-tiles { grid-template-columns: repeat(2, 1fr); }
+}
