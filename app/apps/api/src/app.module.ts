@@ -18,6 +18,7 @@ import { HealthController } from './core/health.controller';
 import { SyncController } from './core/sync.controller';
 import { ReportsController } from './reports/reports.controller';
 import { MenuController } from './menu/menu.controller';
+import { GuestController } from './menu/guest.controller';
 import { StockController } from './stock/stock.controller';
 import { OrdersController } from './orders/orders.controller';
 import { FinanceController } from './finance/finance.controller';
@@ -38,7 +39,7 @@ import { VerticalsController } from './verticals/verticals.controller';
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
-    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController],
+    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}
