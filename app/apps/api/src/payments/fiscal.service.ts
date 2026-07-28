@@ -17,64 +17,6 @@ import type { FiscalDriver, FiscalRequest } from './payments.logic';
 /** Паузы между попытками: быстро, потом реже — чтобы не долбить упавший ОФД. */
 const RETRY_MINUTES = [1, 5, 15, 60, 180];
 
-/**
- * Расшифровка кодов Webkassa человеческим языком.
- *
- * У конкурентов кассир видит «Ошибка -1» и ищет её в справке —
- * а в час пик искать некогда. Мы сразу говорим, что случилось
- * и что делать, и различаем: чинит кассир или зовём владельца.
- */
-const WEBKASSA_ERRORS: Record<string, {
-  text: string; action: string; who: 'cashier' | 'owner'; retriable: boolean;
-}> = {
-  '-1': {
-    text: 'Модуль печати не запущен',
-    action: 'Найдите значок Webkassa в трее и нажмите «Запустить кассу»',
-    who: 'cashier', retriable: true,
-  },
-  '17': {
-    text: 'Не оплачена лицензия Webkassa',
-    action: 'Оплатите лицензию в личном кабинете Webkassa',
-    who: 'owner', retriable: false,
-  },
-  '94': {
-    text: 'Не оплачен ОФД',
-    action: 'Оплатите услуги оператора фискальных данных',
-    who: 'owner', retriable: false,
-  },
-  '115': {
-    text: 'Нет связи с Webkassa',
-    action: 'Проверьте интернет — чек уйдёт сам, когда связь вернётся',
-    who: 'cashier', retriable: true,
-  },
-  '2': {
-    text: 'Смена в кассе не открыта',
-    action: 'Откройте смену в модуле Webkassa',
-    who: 'cashier', retriable: true,
-  },
-  '3': {
-    text: 'Смена превысила 24 часа',
-    action: 'Закройте смену в Webkassa и откройте заново — так требует закон',
-    who: 'cashier', retriable: true,
-  },
-};
-
-/** Понятное объяснение по коду ошибки. */
-export function explainFiscalError(code?: string | null, raw?: string | null) {
-  const known = code ? WEBKASSA_ERRORS[String(code)] : null;
-  if (known) return { ...known, code };
-
-  // Незнакомый код: не выдумываем причину, но подсказываем,
-  // что чек не потерян — это главное, что волнует кассира
-  return {
-    text: raw?.trim() || 'Касса не приняла чек',
-    action: 'Продажа сохранена. Позвоните в поддержку с этим кодом',
-    who: 'owner' as const,
-    retriable: true,
-    code: code ?? null,
-  };
-}
-
 @Injectable()
 export class FiscalService {
   private readonly log = new Logger('Fiscal');
@@ -164,20 +106,14 @@ export class FiscalService {
         return 'SENT';
       }
 
-      const explained = explainFiscalError(res.errorCode, res.errorText);
-
-      // Логическая ошибка: повтор ничего не изменит, нужен человек.
-      // Код Webkassa знает лучше нас — доверяем его разметке
-      if (res.retriable === false || !explained.retriable) {
+      // Логическая ошибка: повтор ничего не изменит, нужен человек
+      if (res.retriable === false) {
         await this.prisma.fiscalReceipt.update({
           where: { id: rec.id },
           data: {
             status: 'ERROR',
             attempts: rec.attempts + 1,
-            error: (() => {
-              const e = explainFiscalError(res.errorCode, res.errorText);
-              return `${e.code ?? ''} ${e.text} — ${e.action}`.trim();
-            })(),
+            error: `${res.errorCode ?? ''} ${res.errorText ?? ''}`.trim(),
             nextTryAt: null,
           },
         });
@@ -246,23 +182,10 @@ export class FiscalService {
       }),
     ]);
 
-    // Последняя ошибка с объяснением: кассир видит, что делать,
-    // не открывая справку и не звоня владельцу
-    const lastError = await this.prisma.fiscalReceipt.findFirst({
-      where: { accountId, status: 'ERROR' },
-      orderBy: { createdAt: 'desc' },
-      select: { error: true, createdAt: true, orderId: true },
-    });
-
     return {
       configured: this.isConfigured,
       provider: this.driver.type,
       queued, errors, sentToday,
-      lastError: lastError ? {
-        text: lastError.error,
-        at: lastError.createdAt,
-        orderId: lastError.orderId,
-      } : null,
       // Кассиру важна не техника, а ответ на вопрос «всё ли в порядке»
       ok: errors === 0 && queued < 10,
     };
