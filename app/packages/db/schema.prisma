@@ -1878,3 +1878,50 @@ model StockBatch {
 
   @@index([warehouseId, productId, expiresAt])
 }
+
+/// Явка сотрудника: пришёл и ушёл. Отдельно от кассовой смены —
+/// повар и официант не открывают кассу, но работают.
+model Attendance {
+  id         String    @id @default(cuid())
+  accountId  String
+  userId     String
+  locationId String
+  checkIn    DateTime  @default(now())
+  checkOut   DateTime?
+  /// Плановое время из расписания — по нему считаем опоздание
+  planFrom   DateTime?
+  planTo     DateTime?
+  /// Засчитанные минуты. Может отличаться от факта: округляем
+  /// до получаса, чтобы не считать копейки за пять минут
+  countedMin Int?
+  status     AttendanceStatus @default(OPEN)
+  issue      String?           // «Опоздание 20 мин», «Ранний уход»
+  approvedBy String?
+  note       String?
+
+  @@index([accountId, userId, checkIn])
+  @@index([locationId, checkIn])
+}
+
+/// Смена по расписанию: кто когда должен работать.
+model WorkShift {
+  id         String   @id @default(cuid())
+  accountId  String
+  userId     String
+  locationId String
+  startsAt   DateTime
+  endsAt     DateTime
+  role       String?
+  createdBy  String
+  createdAt  DateTime @default(now())
+
+  @@index([locationId, startsAt])
+  @@index([userId, startsAt])
+}
+
+enum AttendanceStatus {
+  OPEN      // пришёл, не ушёл
+  CLOSED    // отработал
+  ISSUE     // проблемная: опоздание, прогул, переработка
+  APPROVED  // проблему разобрали и приняли
+}
