@@ -357,3 +357,43 @@ export function deferralUntil(from: Date, days: number): Date {
   d.setDate(d.getDate() + days);
   return d;
 }
+
+// ═══════════════ ИНВЕНТАРИЗАЦИЯ ═══════════════
+// Слепой пересчёт: считающий не видит книжный остаток, иначе
+// подгонит цифру. Расхождение показываем только после ввода.
+
+export const INVENTORY_COPY = {
+  printSheet: 'Печать листа',
+  counted: 'Пересчитано',
+  ofTotal: (n: number) => `из ${n}`,
+  // Итог в деньгах, а не в килограммах: владельцу важно,
+  // сколько потеряли, а не сколько граммов не хватает
+  moneyTotal: 'Итог в деньгах',
+  writeOffTarget: 'спишется в «Порчу и недостачи»',
+  inMoney: 'В деньгах',
+  addProduct: 'Добавить продукт в лист',
+} as const;
+
+// ═══════════════ БРОНИ ═══════════════
+
+export const BOOKING_COPY = {
+  eveningCount: 'Броней на вечер',
+  tablesBusy: 'Занято столов',
+  ofTables: (n: number) => `из ${n} в шахматке`,
+  prepaid: 'Предоплат',
+  // Неподтверждённые брони — главная причина пустых столов в час пик.
+  // Напоминание за 2 часа возвращает половину из них
+  unconfirmed: 'Не подтвердили',
+  reminderNote: 'напомнить за 2 часа',
+  gridTitle: (day: string) => `Шахматка · ${day}`,
+  notConfirmed: 'не подтверждена',
+  dayTitle: (day: string) => `Брони на ${day}`,
+  openQr: 'Открыть приём броней в QR-меню',
+} as const;
+
+/** Сумма расхождения инвентаризации в деньгах. */
+export function inventoryMoneyDiff(
+  lines: { diff: number; avgCost: number }[],
+): number {
+  return Math.round(lines.reduce((s, l) => s + l.diff * l.avgCost, 0));
+}
