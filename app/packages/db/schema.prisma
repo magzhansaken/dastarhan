@@ -224,6 +224,10 @@ enum MeasureUnit {
 }
 
 model Product {
+  /// Срок хранения в часах после приготовления или вскрытия.
+  /// Салат живёт 12 часов, суп 24, заготовка 72 — просроченное
+  /// нельзя подавать, и это вопрос не денег, а здоровья гостей
+  shelfLifeHours Int?
   stationId String?          // цех приготовления для KDS
   station   Station? @relation(fields: [stationId], references: [id])
   id         String      @id @default(cuid())
@@ -1853,4 +1857,24 @@ model MenuScheduleItem {
   onlyInTime Boolean      @default(false)
 
   @@unique([scheduleId, productId])
+}
+
+/// Партия с датой изготовления. Нужна для контроля сроков:
+/// в холодильнике три кастрюли зирвака, и повар должен взять
+/// ту, что старше, а не ту, что ближе.
+model StockBatch {
+  id           String   @id @default(cuid())
+  accountId    String
+  warehouseId  String
+  productId    String
+  qty          Decimal
+  unitCost     Int      @default(0)
+  producedAt   DateTime @default(now())
+  expiresAt    DateTime?
+  /// Кто приготовил — при жалобе видно, чья смена
+  byUserId     String?
+  docId        String?
+  isWrittenOff Boolean  @default(false)
+
+  @@index([warehouseId, productId, expiresAt])
 }
