@@ -6,6 +6,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth/auth.service';
 import { AuthController } from './auth/auth.controller';
 import { SignupController } from './auth/signup.controller';
+import { OnboardingController } from './auth/onboarding.controller';
 import { PermissionsGuard } from './auth/permissions.guard';
 import { JwtGuard } from './auth/jwt.guard';
 import { PrismaService } from './core/prisma.service';
@@ -42,7 +43,7 @@ import { VerticalsController } from './verticals/verticals.controller';
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
-    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController],
+    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}
