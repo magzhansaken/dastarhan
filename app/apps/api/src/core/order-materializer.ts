@@ -60,21 +60,28 @@ export class OrderMaterializer {
     payload: any;
   }): Promise<'created' | 'skipped' | 'error'> {
     const p = ev.payload ?? {};
-    if (!p.orderId || !Array.isArray(p.items)) return 'skipped';
+    if (!p.orderId || !Array.isArray(p.items)) {
+      this.log.warn(`Пропуск: нет orderId или items (orderId=${p.orderId})`);
+      return 'skipped';
+    }
 
     try {
       // Повторный разбор того же чека недопустим — задвоит выручку
       const exists = await this.prisma.order.findUnique({ where: { id: p.orderId } });
-      if (exists) return 'skipped';
+      if (exists) {
+        this.log.log(`Пропуск: заказ ${p.orderId} уже проведён`);
+        return 'skipped';
+      }
 
       const terminal = await this.prisma.terminal.findUnique({
         where: { id: ev.terminalId },
         include: { location: true },
       });
       if (!terminal) {
-        this.log.warn(`Терминал ${ev.terminalId} не найден, чек ${p.orderId} пропущен`);
+        this.log.warn(`Пропуск: терминал ${ev.terminalId} не найден`);
         return 'skipped';
       }
+      this.log.log(`Разбираю чек №${p.number}, терминал ${terminal.name}`);
 
       const accountId = terminal.location.accountId;
       const shift = await this.ensureShift(
