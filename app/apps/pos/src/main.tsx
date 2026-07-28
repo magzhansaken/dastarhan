@@ -5,6 +5,66 @@ import { createRoot } from 'react-dom/client';
 import './ui/pos.css';
 import { PinScreen, OrderScreen, PaymentScreen } from './ui/screens/PosScreens';
 import { ShiftOpenScreen, ShiftCloseScreen } from './ui/screens/ShiftScreens';
+
+// ═══════════════ КАРТА ЗАЛА ═══════════════
+// Официант выбирает стол и открывает на нём заказ.
+// Без карты он держит в голове, кто где сидит, — и путается на восьмом столе.
+
+function HallScreen({ token, onTable, onTakeaway }: {
+  token: string; onTable: (t: any) => void; onTakeaway: () => void;
+}) {
+  const [halls, setHalls] = useState<any[]>([]);
+  const locationId = localStorage.getItem('dastarhan.locationId') ?? '';
+
+  useEffect(() => {
+    const load = () => fetch(`${API}/hall/map?locationId=${locationId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => (r.ok ? r.json() : [])).then(setHalls).catch(() => setHalls([]));
+    load();
+    // Карта живая: официант видит, что стол освободился,
+    // не подходя к нему
+    const i = setInterval(load, 15_000);
+    return () => clearInterval(i);
+  }, [locationId]);
+
+  const fmt = (v: number) => `${Math.trunc(v / 100).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;
+
+  return (
+    <div className="hall-screen">
+      <header className="hall-top">
+        <b>Карта зала</b>
+        <button className="btn btn-accent" onClick={onTakeaway}>Навынос</button>
+      </header>
+
+      {!halls.length && (
+        <div className="state-empty">
+          <b>Залы не настроены</b>
+          <span>Владелец расставит столы в бэк-офисе</span>
+          <button className="btn btn-accent" onClick={onTakeaway}>Продавать навынос</button>
+        </div>
+      )}
+
+      {halls.map((h) => (
+        <section key={h.hallId} className="hall-zone">
+          <h3>{h.name}</h3>
+          <div className="hall-grid">
+            {h.tables.map((t: any) => (
+              <button key={t.tableId}
+                className={`pos-table ${t.busy ? 'busy' : 'free'} ${t.isLong ? 'long' : ''}`}
+                onClick={() => onTable(t)}>
+                <b>{t.name}</b>
+                <span>{t.seats} мест</span>
+                {t.busy && (
+                  <em>{fmt(t.total)} · {t.minutes} мин</em>
+                )}
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
 import { reduceOrder, orderTotals } from '../../../packages/shared/src/order/orderReducer';
 import type { OrderState } from '../../../packages/shared/src/order/orderReducer';
 
@@ -151,6 +211,8 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [stops, setStops] = useState<Record<string, number | null>>({});
   const [order, setOrder] = useState<OrderState | null>(null);
   const [paying, setPaying] = useState(false);
+  const [screen, setScreen] = useState<'hall' | 'order'>('hall');
+  const [table, setTable] = useState<any>(null);
   // Смешанная оплата: гость платит часть картой, часть наличными.
   // Обычное дело при разделе счёта между гостями
   const [paid, setPaid] = useState<{ methodId: string; amount: number }[]>([]);
@@ -271,6 +333,19 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
     );
   }
 
+  // Зал первым экраном: официант начинает со стола, а не с меню.
+  // Для фастфуда владелец отключает залы, и касса открывается сразу в заказе
+  if (screen === 'hall') {
+    return (
+      <HallScreen token={token}
+        onTable={(t) => {
+          setTable(t);
+          setScreen('order');
+        }}
+        onTakeaway={() => { setTable(null); setScreen('order'); }} />
+    );
+  }
+
   return (
     <OrderScreen
       order={order!}
@@ -288,7 +363,7 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
         reason: 'BEFORE_KITCHEN', byUserId: user.id ?? 'pos',
       } as any))}
       onPay={() => setPaying(true)}
-      onHall={onLogout}
+      onHall={() => setScreen('hall')}
       // Пречек: гость просит счёт до оплаты. Печатаем без фискализации —
       // это не чек, а предварительный расчёт
       onPrecheck={() => {
