@@ -174,14 +174,23 @@ export class AuditController {
     rows.sort((a, b) => (b.per100Orders ?? 0) - (a.per100Orders ?? 0));
 
     // Аномалия — отклонение от своих же коллег, а не от нормы
-    // из учебника. В разных заведениях разная культура работы
-    const withRate = rows.filter((r) => r.per100Orders !== null);
-    const avg = withRate.length
-      ? withRate.reduce((s, r) => s + r.per100Orders!, 0) / withRate.length : 0;
+    // из учебника. В разных заведениях разная культура работы.
+    //
+    // Считаем по медиане, а не по среднему: один человек с сотней
+    // удалений задирает среднее и перестаёт выделяться на его фоне.
+    // Медиана к выбросам устойчива
+    const rates = rows.map((r) => r.per100Orders).filter((x): x is number => x !== null)
+      .sort((a, b) => a - b);
+    const median = rates.length
+      ? rates.length % 2
+        ? rates[(rates.length - 1) / 2]
+        : (rates[rates.length / 2 - 1] + rates[rates.length / 2]) / 2
+      : 0;
+    const avg = median;
 
     return {
       periodDays: Number(days),
-      avgPer100: +avg.toFixed(1),
+      medianPer100: +avg.toFixed(1),
       rows: rows.map((r) => ({
         ...r,
         // Втрое чаще коллег — повод посмотреть, а не обвинять

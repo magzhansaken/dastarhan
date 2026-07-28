@@ -1,9 +1,12 @@
 // Нормировка рискованных действий
 const per100 = (events, orders) => orders > 0 ? +((events/orders)*100).toFixed(1) : null;
 function outliers(rows) {
-  const withRate = rows.filter(r => r.per100 !== null);
-  const avg = withRate.length ? withRate.reduce((s,r)=>s+r.per100,0)/withRate.length : 0;
-  return rows.map(r => ({ ...r, outlier: r.per100 !== null && avg > 0 && r.per100 > avg*3 }));
+  // Медиана вместо среднего: выброс не должен задирать порог сам себе
+  const rates = rows.map(r=>r.per100).filter(x=>x!==null).sort((a,b)=>a-b);
+  const median = rates.length
+    ? (rates.length % 2 ? rates[(rates.length-1)/2]
+       : (rates[rates.length/2-1]+rates[rates.length/2])/2) : 0;
+  return rows.map(r => ({ ...r, outlier: r.per100 !== null && median > 0 && r.per100 > median*3 }));
 }
 let p=0,f=0;const eq=(n,g,w)=>{const o=g===w;o?(p++,console.log(`  ✓ ${n}`)):(f++,console.log(`  ✗ ${n}: ${g}`))};
 
