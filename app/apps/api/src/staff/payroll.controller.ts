@@ -61,12 +61,7 @@ export class PayrollController {
     });
     const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
 
-    const rows: {
-      userId: string; name: string; shiftsCount: number; hours: number;
-      personalSales: number;
-      lines: { kind: string; label: string; amount: number }[];
-      accrued: number; advances: number; toPay: number;
-    }[] = [];
+    const rows: any[] = [];
     for (const rule of rules) {
       const [shifts, orders, manual] = await Promise.all([
         this.prisma.cashShift.findMany({
@@ -132,6 +127,11 @@ export class PayrollController {
       rows.push({
         userId: rule.userId,
         name: nameBy.get(rule.userId) ?? '—',
+        // Плоские поля для экрана ведомости; разбивка остаётся в lines
+        role: rule.perShift > 0 ? 'Смены' : rule.salary > 0 ? 'Оклад' : 'Процент',
+        baseSalary: rule.salary + rule.perShift * shifts.length,
+        hourly: Math.round(rule.perHour * hours),
+        salesPct: pct > 0 ? Math.round(personalSales * pct / 100) : 0,
         shiftsCount: shifts.length,
         hours: Math.round(hours),
         personalSales,
