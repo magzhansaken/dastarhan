@@ -1773,3 +1773,50 @@ enum PayrollKind {
   FINE        // штраф (отрицательная сумма)
   ADVANCE     // аванс (отрицательная — уменьшает остаток)
 }
+
+/// Инвентаризация без остановки продаж.
+/// Запоминаем момент начала: всё, что продали и приняли во время
+/// пересчёта, учитывается автоматически. Иначе кладовщик считает
+/// два часа, за которые продали половину, и цифры не сходятся.
+model Inventory {
+  id           String    @id @default(cuid())
+  accountId    String
+  warehouseId  String
+  number       Int
+  status       InventoryStatus @default(COUNTING)
+  /// Точка отсчёта: остатки на этот момент считаются книжными
+  startedAt    DateTime  @default(now())
+  finishedAt   DateTime?
+  createdBy    String
+  note         String?
+
+  lines        InventoryLine[]
+
+  @@index([accountId, warehouseId])
+}
+
+model InventoryLine {
+  id           String    @id @default(cuid())
+  inventoryId  String
+  inventory    Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  productId    String
+  /// Книжный остаток на момент старта — фиксируем, чтобы потом
+  /// не пересчитывать и не спорить
+  bookQty      Decimal
+  /// Фактический пересчёт. Null означает «ещё не считали» —
+  /// это не то же самое, что ноль на складе
+  factQty      Decimal?
+  /// Движения после старта: продажи и приходы во время пересчёта
+  movedQty     Decimal   @default(0)
+  avgCost      Int       @default(0)
+  countedBy    String?
+  countedAt    DateTime?
+
+  @@unique([inventoryId, productId])
+}
+
+enum InventoryStatus {
+  COUNTING   // идёт пересчёт
+  POSTED     // проведена, остатки скорректированы
+  CANCELLED
+}
