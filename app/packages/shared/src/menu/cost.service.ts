@@ -1,4 +1,4 @@
-// apps/api/src/menu/cost.service.ts
+// packages/shared/src/menu/cost.service.ts
 // РАСЧЁТ СЕБЕСТОИМОСТИ — сердце этапа 1.
 // Модель (объединение лучшего):
 //  - Poster how-the-cost-is-calculated: себестоимость ингредиента =

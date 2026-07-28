@@ -1,4 +1,4 @@
-// apps/api/src/verticals/verticals.logic.ts
+// packages/shared/src/verticals/verticals.logic.ts
 // Чистая логика трёх вертикалей. Глубже единственного образца (Paloma).
 
 export type Money = number;

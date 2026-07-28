@@ -9,7 +9,7 @@
 //     честный пересчёт (есть только у iiko в опциях, у остальных нет)
 //  3) кнопка «Фото накладной» → ИИ-черновик (мост к Этапу 8)
 import React, { useMemo, useState } from 'react';
-import { inventoryDiff } from '../../../api/src/stock/stock.logic';
+import { inventoryDiff } from '../../../../packages/shared/src/stock/stock.logic';
 
 export type Money = number;
 const fmt = (t: Money) => `${Math.trunc(t / 100).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;

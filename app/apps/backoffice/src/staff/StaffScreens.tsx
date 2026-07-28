@@ -12,8 +12,8 @@ import {
   resolvePermission,
 } from '@dastarhan/shared';
 import type { PermissionKey, PermissionState, RolePermissions } from '@dastarhan/shared';
-import { tipLink, tipsSummary, tipMethodNote } from '../../../api/src/staff/tips.logic';
-import type { TipRecord, TipMethod } from '../../../api/src/staff/tips.logic';
+import { tipLink, tipsSummary, tipMethodNote } from '../../../../packages/shared/src/staff/tips.logic';
+import type { TipRecord, TipMethod } from '../../../../packages/shared/src/staff/tips.logic';
 
 const fmt = (t: number) => `${Math.trunc(t / 100).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;
 
