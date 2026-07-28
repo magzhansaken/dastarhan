@@ -245,4 +245,145 @@ export class ButcheringController {
         };
       });
   }
+
+  // ═══════════════ ПЕРЕСОРТИЦА ═══════════════
+
+  /**
+   * Пересортица: списали не тот сорт, нашли излишек другого.
+   * Классика инвентаризации — кладовщик взял пачку риса «Басмати»
+   * вместо «Жасмин», в учёте минус одного и плюс другого.
+   *
+   * Проводим одним документом: иначе в истории останутся два
+   * несвязанных движения, и через месяц никто не поймёт причину.
+   */
+  @Post('regrading')
+  @RequirePermission('stock.writeoff')
+  async regrading(
+    @Body() dto: {
+      warehouseId: string;
+      fromProductId: string;
+      toProductId: string;
+      qty: number;
+      reason?: string;
+    },
+    @Req() req: any,
+  ) {
+    if (dto.fromProductId === dto.toProductId) {
+      throw new BadRequestException({ code: 'SAME_PRODUCT' });
+    }
+    if (dto.qty <= 0) throw new BadRequestException({ code: 'BAD_QTY' });
+
+    const wh = await this.prisma.warehouse.findUnique({ where: { id: dto.warehouseId } });
+    if (!wh) throw new NotFoundException({ code: 'WAREHOUSE_NOT_FOUND' });
+
+    const [fromBal, toBal, products] = await Promise.all([
+      this.prisma.stockBalance.findFirst({
+        where: { warehouseId: dto.warehouseId, productId: dto.fromProductId },
+      }),
+      this.prisma.stockBalance.findFirst({
+        where: { warehouseId: dto.warehouseId, productId: dto.toProductId },
+      }),
+      this.prisma.product.findMany({
+        where: { id: { in: [dto.fromProductId, dto.toProductId] } },
+        select: { id: true, name: true, unit: true },
+      }),
+    ]);
+
+    const nameBy = new Map(products.map((p) => [p.id, p]));
+    const fromUnit = nameBy.get(dto.fromProductId)?.unit;
+    const toUnit = nameBy.get(dto.toProductId)?.unit;
+
+    // Единицы должны совпадать: килограммы в литры не пересортишь,
+    // и попытка означает ошибку выбора товара
+    if (fromUnit !== toUnit) {
+      throw new BadRequestException({
+        code: 'UNIT_MISMATCH',
+        message: `Разные единицы: ${fromUnit} и ${toUnit}`,
+      });
+    }
+
+    // Себестоимость переносим с исходного товара: пересортица
+    // не создаёт и не уничтожает стоимость, только меняет владельца
+    const unitCost = fromBal?.avgCost ?? 0;
+
+    const last = await this.prisma.stockDoc.findFirst({
+      where: { accountId: req.user.acc },
+      orderBy: { number: 'desc' },
+      select: { number: true },
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      const doc = await tx.stockDoc.create({
+        data: {
+          accountId: req.user.acc,
+          locationId: wh.locationId,
+          type: 'SURPLUS',
+          status: 'POSTED',
+          number: (last?.number ?? 0) + 1,
+          warehouseId: dto.warehouseId,
+          reason: dto.reason ?? 'Пересортица',
+          note: `${nameBy.get(dto.fromProductId)?.name} → ${nameBy.get(dto.toProductId)?.name}`,
+          createdBy: req.user.sub,
+          postedAt: new Date(),
+          lines: {
+            create: [
+              { productId: dto.fromProductId, qty: -dto.qty as any,
+                unitCost, role: 'FROM', sortOrder: 0 },
+              { productId: dto.toProductId, qty: dto.qty as any,
+                unitCost, role: 'TO', sortOrder: 1 },
+            ],
+          },
+        },
+      });
+
+      // Списываем неверный сорт
+      if (fromBal) {
+        await tx.stockBalance.update({
+          where: { id: fromBal.id },
+          data: { qty: Number(fromBal.qty) - dto.qty },
+        });
+      }
+      await tx.stockMovement.create({
+        data: {
+          accountId: req.user.acc, warehouseId: dto.warehouseId,
+          productId: dto.fromProductId, docId: doc.id,
+          qtyDelta: -dto.qty, unitCost,
+        },
+      });
+
+      // Приходуем верный по той же цене
+      const curQty = toBal ? Number(toBal.qty) : 0;
+      const curAvg = toBal?.avgCost ?? 0;
+      const nextQty = curQty + dto.qty;
+      const nextAvg = curQty <= 0
+        ? unitCost
+        : Math.round((curQty * curAvg + dto.qty * unitCost) / nextQty);
+
+      if (toBal) {
+        await tx.stockBalance.update({
+          where: { id: toBal.id }, data: { qty: nextQty, avgCost: nextAvg },
+        });
+      } else {
+        await tx.stockBalance.create({
+          data: { warehouseId: dto.warehouseId, productId: dto.toProductId,
+                  qty: nextQty, avgCost: nextAvg },
+        });
+      }
+      await tx.stockMovement.create({
+        data: {
+          accountId: req.user.acc, warehouseId: dto.warehouseId,
+          productId: dto.toProductId, docId: doc.id,
+          qtyDelta: dto.qty, unitCost,
+        },
+      });
+    });
+
+    return {
+      ok: true,
+      from: nameBy.get(dto.fromProductId)?.name,
+      to: nameBy.get(dto.toProductId)?.name,
+      qty: dto.qty,
+      unitCost,
+    };
+  }
 }

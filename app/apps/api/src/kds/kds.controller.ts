@@ -149,4 +149,61 @@ export class KdsController {
       .filter((x) => x.qty > 1)
       .sort((a, b) => b.qty - a.qty);
   }
+
+  // ═══════════════ ЭЛЕКТРОННАЯ ОЧЕРЕДЬ ═══════════════
+
+  /**
+   * Табло выдачи для фастфуда. Гость взял номерок и смотрит на экран,
+   * а не толпится у стойки и не переспрашивает «мой готов?».
+   *
+   * Два списка: готовится и готово. Готовые держим пять минут после
+   * выдачи — гость мог отойти, и номер должен ещё повисеть.
+   */
+  @Get('queue')
+  async queue(@Query('locationId') locationId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: {
+        locationId,
+        status: { in: ['OPEN', 'CLOSED'] },
+        openedAt: { gte: new Date(Date.now() - 2 * 3600_000) },
+      },
+      include: { items: { where: { isRemoved: false } } },
+      orderBy: { openedAt: 'asc' },
+      take: 40,
+    });
+
+    const cooking: any[] = [];
+    const ready: any[] = [];
+    const now = Date.now();
+
+    for (const o of orders) {
+      if (!o.items.length) continue;
+      const allReady = o.items.every((i) => i.kitchenStatus === 'READY');
+      const waited = Math.floor((now - o.openedAt.getTime()) / 60000);
+
+      // Номер на табло короткий: гость запоминает две цифры,
+      // а не восьмизначный идентификатор заказа
+      const shortNo = o.number % 100;
+
+      if (allReady) {
+        // Выданные заказы уходят с табло через 5 минут после закрытия
+        if (o.status === 'CLOSED' && o.closedAt &&
+            now - o.closedAt.getTime() > 5 * 60_000) continue;
+        ready.push({ number: shortNo, fullNumber: o.number, waited });
+      } else if (o.status === 'OPEN') {
+        cooking.push({ number: shortNo, fullNumber: o.number, waited });
+      }
+    }
+
+    return {
+      cookingTitle: 'Готовится',
+      readyTitle: 'Готово — забирайте',
+      cooking,
+      ready,
+      // Среднее ожидание на табло: гость видит, сколько примерно ждать,
+      // и не нервничает через три минуты
+      avgWaitMin: cooking.length
+        ? Math.round(cooking.reduce((s, c) => s + c.waited, 0) / cooking.length) : 0,
+    };
+  }
 }
