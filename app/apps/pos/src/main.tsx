@@ -225,6 +225,32 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
       } as any))}
       onPay={() => setPaying(true)}
       onHall={onLogout}
+      // Пречек: гость просит счёт до оплаты. Печатаем без фискализации —
+      // это не чек, а предварительный расчёт
+      onPrecheck={() => {
+        const t = orderTotals(order!);
+        const lines = order!.items
+          .filter((i: any) => !i.isRemoved)
+          .map((i: any) => `${i.name} ×${i.qty}  ${Math.trunc(i.unitPrice * i.qty / 100)} ₸`)
+          .join('\n');
+        alert(`ПРЕДВАРИТЕЛЬНЫЙ СЧЁТ\n\n${lines}\n\nИтого: ${Math.trunc(t.subtotal / 100)} ₸\n\nНе фискальный документ`);
+      }}
+      // Отправка на кухню: позиции уходят повару до оплаты,
+      // иначе горячее начнут готовить только после расчёта
+      onToKitchen={async () => {
+        const ids = order!.items.filter((i: any) => !i.isRemoved).map((i: any) => i.id);
+        if (!ids.length) return;
+        enqueue({
+          eventId: crypto.randomUUID(),
+          terminalId: localStorage.getItem('dastarhan.terminalId') ?? '',
+          type: 'order.kitchen.sent',
+          createdAt: new Date().toISOString(),
+          payload: { orderId: order!.orderId, itemIds: ids },
+        });
+        const left = await flushQueue(token, localStorage.getItem('dastarhan.terminalId') ?? '');
+        setQueued(left);
+        alert(`На кухню отправлено позиций: ${ids.length}`);
+      }}
     />
   );
 }
