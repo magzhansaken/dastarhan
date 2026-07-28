@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import './ui/pos.css';
 import { PinScreen, OrderScreen, PaymentScreen } from './ui/screens/PosScreens';
+import { ShiftOpenScreen, ShiftCloseScreen } from './ui/screens/ShiftScreens';
 import { reduceOrder, orderTotals } from '../../../packages/shared/src/order/orderReducer';
 import type { OrderState } from '../../../packages/shared/src/order/orderReducer';
 
@@ -107,6 +108,44 @@ function Activation({ onDone }: { onDone: () => void }) {
 
 // ═══════════════ РАБОЧИЙ ЭКРАН ═══════════════
 
+// ═══════════════ СМЕНА ═══════════════
+// Касса не продаёт без открытой смены: иначе чеки повиснут
+// без привязки, и Z-отчёт в конце дня не сойдётся.
+
+function ShiftGate({ token, onOpen, onLogout }: {
+  token: string; onOpen: () => void; onLogout: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const user = JSON.parse(localStorage.getItem('dastarhan.user') ?? '{}');
+  const now = new Date();
+
+  const open = async (float: number) => {
+    setBusy(true);
+    try {
+      const r = await fetch(`${API}/shifts/open`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          terminalId: localStorage.getItem('dastarhan.terminalId') ?? '',
+          openingCash: float,
+        }),
+      });
+      if (r.ok) onOpen();
+    } finally { setBusy(false); }
+  };
+
+  return (
+    <ShiftOpenScreen
+      cashierName={user.name ?? 'Кассир'}
+      time={now.toTimeString().slice(0, 5)}
+      date={now.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+      fiscalReady={true}
+      onOpen={(float: number) => open(float)}
+      onBack={onLogout}
+    />
+  );
+}
+
 function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [catalog, setCatalog] = useState<any>({ categories: [], products: [] });
   const [stops, setStops] = useState<Record<string, number | null>>({});
@@ -118,6 +157,8 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [queued, setQueued] = useState(0);
+  const [shift, setShift] = useState<any>(null);
+  const [closing, setClosing] = useState(false);
   const [online, setOnline] = useState(true);
 
   const locationId = localStorage.getItem('dastarhan.locationId') ?? '';
@@ -134,6 +175,12 @@ function Pos({ token, onLogout }: { token: string; onLogout: () => void }) {
             .then((r) => (r.ok ? r.json() : [])).catch(() => []),
         ]);
         setCatalog(c);
+        // Смена проверяется при входе: без неё продавать нельзя
+        const sh = await fetch(
+          `${API}/shifts/current?terminalId=${localStorage.getItem('dastarhan.terminalId') ?? ''}`,
+          { headers: h },
+        ).then((r) => (r.ok ? r.json() : { open: false })).catch(() => ({ open: false }));
+        setShift(sh);
         // При каждом входе досылаем то, что накопилось офлайн
         const left = await flushQueue(token, localStorage.getItem('dastarhan.terminalId') ?? '');
         setQueued(left);

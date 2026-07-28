@@ -20,6 +20,7 @@ import { SyncController } from './core/sync.controller';
 import { ReportsController } from './reports/reports.controller';
 import { MenuController } from './menu/menu.controller';
 import { GuestController } from './menu/guest.controller';
+import { HallController } from './menu/hall.controller';
 import { KdsController } from './kds/kds.controller';
 import { BillingController } from './billing/billing.controller';
 import { StockController } from './stock/stock.controller';
@@ -43,7 +44,7 @@ import { VerticalsController } from './verticals/verticals.controller';
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
-    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController],
+    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController],
   providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}
