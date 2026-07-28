@@ -473,3 +473,11 @@ input[type="range"] { width: 100%; accent-color: var(--accent); height: 26px; }
   body { font-size: 16px; }
   .hint, .total-note { font-size: 14px; }
 }
+
+/* Популярный тариф на главной: акцентная рамка вместо цветного фона —
+   карточка не спорит с кнопкой, но выделяется */
+.plan-popular {
+  border-color: var(--accent);
+  box-shadow: 0 8px 24px rgba(232, 131, 58, .12);
+}
+.plan-popular .eyebrow { color: var(--accent); }
