@@ -30,7 +30,18 @@ export class KdsController {
    * листать вчерашнее, чтобы найти текущее.
    */
   @Get('tickets')
-  async tickets(@Query('locationId') locationId: string) {
+  async tickets(
+    @Query('locationId') locationId: string,
+    @Query('stationId') stationId?: string,
+  ) {
+    // Цех повара: у мангала не должны висеть салаты, а у бармена —
+    // горячее. Без фильтра экран превращается в свалку
+    const stationProducts = stationId
+      ? new Set((await this.prisma.product.findMany({
+          where: { stationId }, select: { id: true },
+        })).map((p) => p.id))
+      : null;
+
     const orders = await this.prisma.order.findMany({
       where: { locationId, status: 'OPEN' },
       include: {
@@ -45,7 +56,9 @@ export class KdsController {
 
     return orders
       .map((o) => {
-        const items = o.items.filter((i) => i.kitchenStatus !== 'READY');
+        const items = o.items.filter((i) =>
+          i.kitchenStatus !== 'READY' &&
+          (!stationProducts || stationProducts.has(i.productId)));
         if (!items.length) return null;
 
         const waitedMin = Math.floor((now - o.openedAt.getTime()) / 60000);
@@ -70,6 +83,19 @@ export class KdsController {
         };
       })
       .filter((t) => t !== null);
+  }
+
+  /** Цеха точки — для переключателя на экране кухни. */
+  @Get('stations')
+  async stations(@Query('locationId') locationId: string) {
+    const list = await this.prisma.station.findMany({
+      where: { locationId, isActive: true },
+      orderBy: { sortOrder: 'asc' },
+      select: { id: true, name: true },
+    });
+    // «Все цеха» первым: маленькое кафе работает без разделения,
+    // и переключатель не должен мешать
+    return [{ id: 'all', name: 'Все цеха' }, ...list];
   }
 
   /** Отметить позицию: взял в работу или готово. */

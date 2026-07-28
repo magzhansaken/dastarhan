@@ -10,6 +10,8 @@ const TOKEN = 'dastarhan.token';
 
 function App() {
   const [tickets, setTickets] = useState<any[]>([]);
+  const [stations, setStations] = useState<any[]>([{ id: 'all', name: 'Все цеха' }]);
+  const [station, setStation] = useState('all');
   const [now, setNow] = useState(new Date());
   const [err, setErr] = useState<string | null>(null);
 
@@ -18,7 +20,8 @@ function App() {
 
   const load = async () => {
     try {
-      const r = await fetch(`${API}/kds/tickets?locationId=${locationId}`, {
+      const q = station && station !== 'all' ? `&stationId=${station}` : '';
+      const r = await fetch(`${API}/kds/tickets?locationId=${locationId}${q}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!r.ok) { setErr('Нет связи с сервером'); return; }
@@ -26,6 +29,12 @@ function App() {
       setErr(null);
     } catch { setErr('Нет связи с сервером'); }
   };
+
+  useEffect(() => {
+    fetch(`${API}/kds/stations?locationId=${locationId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then((r) => (r.ok ? r.json() : null)).then((s) => s && setStations(s)).catch(() => null);
+  }, []);
 
   useEffect(() => {
     load();
@@ -62,7 +71,7 @@ function App() {
           comment: i.comment, status: i.status,
         })),
       }))}
-      stations={[{ id: 'all', name: 'Все цеха' }]}
+      stations={stations}
       now={now}
       onStart={(id) => setStatus(id, 'COOKING')}
       onCooked={(id) => setStatus(id, 'READY')}

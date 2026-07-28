@@ -46,6 +46,7 @@ model Location {
   address   String?
   isActive  Boolean @default(true)
 
+  stations    Station[]
   terminals   Terminal[]
   assignments EmployeeAssignment[]
 
@@ -214,6 +215,8 @@ enum MeasureUnit {
 }
 
 model Product {
+  stationId String?          // цех приготовления для KDS
+  station   Station? @relation(fields: [stationId], references: [id])
   id         String      @id @default(cuid())
   accountId  String
   categoryId String?
@@ -1518,4 +1521,20 @@ model Ticket {
   resolvedAt DateTime?
 
   @@index([dealerId, status])
+}
+
+/// Цех приготовления: горячий, холодный, бар, мангал.
+/// Нужен KDS: повар у мангала не должен видеть салаты,
+/// а бармен — горячее. Иначе экран превращается в свалку.
+model Station {
+  id         String  @id @default(cuid())
+  locationId String
+  location   Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  name       String
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+
+  products   Product[]
+
+  @@index([locationId])
 }
