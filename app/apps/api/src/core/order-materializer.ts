@@ -8,6 +8,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { FiscalService } from '../payments/fiscal.service';
+import { StockWriteoffService } from '../stock/stock-writeoff.service';
 
 type PayKind = 'CASH' | 'CARD' | 'KASPI_QR' | 'BONUS' | 'TRANSFER';
 
@@ -18,6 +19,7 @@ export class OrderMaterializer {
   constructor(
     private prisma: PrismaService,
     private fiscal: FiscalService,
+    private writeoff: StockWriteoffService,
   ) {}
 
   /** Способ оплаты с кассы → тип платежа в БД. */
@@ -141,6 +143,18 @@ export class OrderMaterializer {
       });
 
       this.log.log(`Чек №${p.number} на ${Math.trunc(total / 100)} ₸ проведён`);
+
+      // Списание со склада: продали плов — конина ушла с остатков.
+      // Ошибка списания не отменяет продажу: деньги важнее остатков,
+      // остатки можно пересчитать инвентаризацией, чек — нет
+      await this.writeoff.writeOffForOrder({
+        accountId,
+        locationId: terminal.locationId,
+        orderId: p.orderId,
+        items: p.items.map((i: any) => ({
+          productId: i.productId, qty: Number(i.qty ?? 1),
+        })),
+      }).catch((e) => this.log.warn(`Списание по чеку ${p.orderId} не выполнено: ${e?.message}`));
 
       // Фискализация после создания заказа: продажа уже зафиксирована,
       // и даже если ОФД недоступен, чек уйдёт в очередь и пробьётся позже

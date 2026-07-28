@@ -10,6 +10,7 @@ import { JwtGuard } from './auth/jwt.guard';
 import { PrismaService } from './core/prisma.service';
 import { OrderMaterializer } from './core/order-materializer';
 import { FiscalService } from './payments/fiscal.service';
+import { StockWriteoffService } from './stock/stock-writeoff.service';
 import { FiscalController } from './payments/fiscal.controller';
 import { HealthController } from './core/health.controller';
 import { SyncController } from './core/sync.controller';
@@ -36,6 +37,6 @@ import { VerticalsController } from './verticals/verticals.controller';
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
     PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController],
-  providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService],
+  providers: [AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}
