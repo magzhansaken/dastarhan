@@ -269,3 +269,60 @@ export function pnlCellText(value: number, revenue: number, mode: 'money' | 'pct
                             fmt: (n: number) => string): string {
   return mode === 'pct' ? `${pctOfRevenue(value, revenue)}%` : fmt(Math.abs(value));
 }
+
+// ═══════════════ ПЯТЬ ОТЧЁТОВ: ЗАГОЛОВКИ И ПОДПИСИ ═══════════════
+// Каждый отчёт отвечает на один вопрос владельца, а не показывает
+// «данные». Подзаголовок объясняет, что именно смотреть.
+
+export const REPORT_SECTIONS = {
+  sales: {
+    byHour: 'Выручка по часам',
+  },
+  staff: {
+    // Разделение важно: официант может носить много, но не продавать
+    // ничего сверх заказанного. Это разные люди и разные премии
+    subtitle: 'кто продаёт, а кто просто носит',
+    upsell: 'Допродажи',
+  },
+  checks: {
+    cashierTable: 'Кассир и стол',
+    // Колонка «что было не так»: удаления после кухни, скидки,
+    // возвраты. Владелец видит аномалии, не листая все чеки
+    anomalies: 'Что было не так',
+  },
+  stock: {
+    endOfDay: 'Осталось на конец дня',
+  },
+  money: {
+    incoming: 'Откуда пришли деньги',
+    // По убыванию: крупные расходы сверху, мелочь внизу.
+    // Владелец видит, где на самом деле утекают деньги
+    outgoing: 'Куда ушли — по убыванию',
+  },
+  abc: {
+    sold: 'Продано',
+  },
+} as const;
+
+// ═══════════════ ЗАРПЛАТА ═══════════════
+
+export const PAYROLL_COPY = {
+  title: (month: string) => `К выплате за ${month}`,
+  salaries: 'Оклады и часы',
+  hours: (n: number) => `${n} часов смен`,
+  // Процент считается по личным чекам сотрудника, а не по общей
+  // выручке смены: иначе премию делят поровну и мотивация исчезает
+  percent: 'Процент с продаж',
+  percentNote: 'по личным чекам',
+  advance: 'Выдано авансом',
+  total: (people: number) => `Итого · ${people} человек`,
+  markPaid: 'Отметить выплату',
+  exportSheet: 'Выгрузить ведомость',
+} as const;
+
+/** Итог к выплате: оклад по часам плюс процент минус аванс. */
+export function payrollTotal(
+  hourRate: number, hours: number, salesPct: number, personalSales: number, advance: number,
+): number {
+  return Math.round(hourRate * hours + personalSales * salesPct / 100 - advance);
+}
