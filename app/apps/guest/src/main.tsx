@@ -31,8 +31,21 @@ function App() {
       tableToken={data.tableToken}
       categories={data.categories}
       items={data.items}
-      selfOrderEnabled={false}
-      onSubmitOrder={() => {}}
+      wifi={data.wifi ?? undefined}
+      servicePct={data.servicePct ?? undefined}
+      selfOrderEnabled={!!data.selfOrderEnabled}
+      onSubmitOrder={(payload) => {
+        // Заказ со стола уходит на кассу как обычный чек:
+        // кассир видит его в списке и подтверждает
+        fetch(`${API}/guest/table-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tableToken: token, ...payload }),
+        }).then((r) => {
+          if (r.ok) alert('Заказ отправлен официанту');
+          else alert('Не удалось отправить. Позовите официанта.');
+        }).catch(() => alert('Нет связи. Позовите официанта.'));
+      }}
       onCallWaiter={() => {
         fetch(`${API}/guest/call-waiter`, {
           method: 'POST',

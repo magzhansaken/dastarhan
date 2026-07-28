@@ -48,7 +48,7 @@ export class GuestController {
         },
         select: {
           id: true, name: true, nameKk: true, categoryId: true,
-          basePrice: true, imageUrl: true,
+          basePrice: true, imageUrl: true, nutrition: true, unit: true,
         },
       }),
       this.prisma.stopListEntry.findMany({
@@ -65,6 +65,15 @@ export class GuestController {
       shopName: location.account.name,
       tableName: table.name,
       tableToken: token,
+      // Wi-Fi прямо в меню: гость первым делом ищет пароль,
+      // и официанта из-за этого зовут чаще, чем из-за заказа
+      wifi: process.env.GUEST_WIFI ?? null,
+      // Процент обслуживания показываем до заказа, а не в счёте —
+      // иначе сюрприз в конце ужина портит впечатление
+      servicePct: Number(process.env.SERVICE_PCT ?? 0) || null,
+      // Самостоятельный заказ со стола владелец включает сам:
+      // не каждому заведению это подходит
+      selfOrderEnabled: process.env.GUEST_SELF_ORDER === 'true',
       categories: categories.map((c) => ({
         id: c.id, name: c.name, nameKk: c.nameKk, color: c.color,
       })),
@@ -81,6 +90,10 @@ export class GuestController {
           categoryId: p.categoryId,
           price: priceBy.get(p.id) ?? p.basePrice,
           imageUrl: p.imageUrl,
+          // Вес порции и состав: гость выбирает глазами, но решает
+          // по граммам — «420 г» отвечает на вопрос «наемся ли»
+          nutrition: p.nutrition ?? null,
+          unit: p.unit,
         })),
     };
   }
