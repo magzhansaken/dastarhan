@@ -71,11 +71,18 @@ export const PAGES_SIMPLE = [
 ];
 
 export const VERTICALS = [
-  { slug: 'cafe', ru: 'Кафе и ресторан', kk: 'Кафе және мейрамхана' },
-  { slug: 'fastfood', ru: 'Фастфуд и столовая', kk: 'Фастфуд және асхана' },
-  { slug: 'shop', ru: 'Магазин', kk: 'Дүкен' },
-  { slug: 'billiard', ru: 'Бильярд и караоке', kk: 'Бильярд және караоке' },
-  { slug: 'salon', ru: 'Салон красоты', kk: 'Сұлулық салоны' },
+  // gen — родительный падеж для подстановки в «Настройка под кафе»
+  // и «только для магазина». Без него получается «Настройка под Кафе и ресторан»
+  { slug: 'cafe', ru: 'Кафе и ресторан', kk: 'Кафе және мейрамхана',
+    genRu: 'кафе', genKk: 'кафе' },
+  { slug: 'fastfood', ru: 'Фастфуд и столовая', kk: 'Фастфуд және асхана',
+    genRu: 'фастфуда', genKk: 'фастфуд' },
+  { slug: 'shop', ru: 'Магазин', kk: 'Дүкен',
+    genRu: 'магазина', genKk: 'дүкен' },
+  { slug: 'billiard', ru: 'Бильярд и караоке', kk: 'Бильярд және караоке',
+    genRu: 'бильярда', genKk: 'бильярд' },
+  { slug: 'salon', ru: 'Салон красоты', kk: 'Сұлулық салоны',
+    genRu: 'салона', genKk: 'салон' },
 ];
 
 function main() {
@@ -111,6 +118,7 @@ function main() {
           .replaceAll('{{KK_ON}}', lang === 'kk' ? 'on' : '')
           .replaceAll('{{SLUG}}', v.slug)
           .replaceAll('{{TITLE}}', lang === 'kk' ? v.kk : v.ru)
+          .replaceAll('{{SEGMENT_GEN}}', lang === 'kk' ? v.genKk : v.genRu)
           .replaceAll('{{OGLOCALE}}', lang === 'kk' ? 'kk_KZ' : 'ru_KZ');
         html = fillOg(html);
         // блоки, специфичные для вертикали: <v-cafe>…</v-cafe> оставляем только свой
