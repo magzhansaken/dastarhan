@@ -244,3 +244,45 @@ export const LAST_SEEN_LABELS = {
   hours: (n: number) => `${n} ч назад`,
   days: (n: number) => `${n} дня назад`,
 } as const;
+
+// ═══════════════ ПОРЯДОК РАБОТЫ ═══════════════
+
+export const WAVES_TITLE = 'Порядок работы — четыре волны';
+export const WAVE_LABELS = ['Волна 1', 'Волна 2', 'Волна 3', 'Волна 4'] as const;
+
+// Волна 1 — три экрана, на которые владелец смотрит перед покупкой
+export const WAVE1_SCREENS = [
+  '1 · Главная сайта',
+  '2 · Дашборд «Как идут дела»',
+  '3 · Заказ на кассе',
+] as const;
+
+// Звёздочкой помечено то, чего нет у конкурентов
+export const UNIQUE_MARK = 'Здоровье клиентов ⭐';
+
+export const TOUCH_NOTE = 'цели касания 56 px';
+export const FONT_REASON = '. Мгновенная загрузка на кассе важнее уникальной гарнитуры.';
+
+// ═══════════════ ПОДТВЕРЖДЕНИЕ НЕОБРАТИМОГО ═══════════════
+// Списание нельзя отменить, поэтому спрашиваем в деньгах,
+// а не в штуках: «4 порции» ни о чём не говорит, «3 480 ₸» — говорит
+
+export const WRITEOFF_CONFIRM = {
+  title: (portions: number, dish: string) => `Списать ${portions} порции ${dish}?`,
+  body: (cost: string) => `Себестоимость ${cost} уйдёт в «Порчу». Отменить будет нельзя.`,
+} as const;
+
+// ═══════════════ БЕЙДЖИ СОСТОЯНИЙ ═══════════════
+
+export const BADGE_EXAMPLES = {
+  trial: (days: number) => `Пробный · ${days} дней`,
+  overdue: (days: number) => `Просрочка ${days} дня`,
+  kdsOverdue: (time: string) => `Просрочка ${time}`,
+} as const;
+
+// Метки активности: «2 мин назад» читается быстрее, чем время
+export const LAST_SEEN_EXAMPLES = ['2 мин назад', '1 ч назад', '2 дня назад'] as const;
+
+// Плитка стола на кассе: номер стола и номер заказа вместе —
+// официант ищет по столу, кассир по чеку
+export const TABLE_TILE = (table: string, order: number) => `Стол ${table} · #${order}`;
