@@ -64,12 +64,11 @@ function App() {
         number: o.number ?? 0,
         address: o.address ?? '',
         phone: o.phone ?? '',
-        // Позиции заказа API пока не отдаёт — курьеру важнее адрес
-        // и сумма, состав он видит на пакете
-        items: [],
+        items: o.items ?? [],
         // Ноль означает предоплату Kaspi: у двери денег не берём
         cashDue: o.total ?? 0,
         comment: o.comment ?? undefined,
+        customerName: o.customerName ?? undefined,
         promisedAt: o.promisedAt ? new Date(o.promisedAt) : new Date(),
         status: (o.status === 'CLOSED' ? 'DELIVERED'
           : o.status === 'CANCELLED' ? 'RETURNED' : 'DISPATCHED') as

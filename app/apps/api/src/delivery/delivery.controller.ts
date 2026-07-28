@@ -108,6 +108,19 @@ export class DeliveryController {
       where: { tripId: trip.id },
     });
 
+    // Состав заказа курьеру нужен: гость спрашивает «а соус положили?»,
+    // и курьер должен ответить, не звоня на кухню
+    const items = await this.prisma.orderItem.findMany({
+      where: { orderId: { in: infos.map((i) => i.orderId) }, isRemoved: false },
+      select: { orderId: true, nameSnapshot: true, qty: true },
+    });
+    const itemsByOrder = new Map<string, { name: string; qty: number }[]>();
+    for (const it of items) {
+      const arr = itemsByOrder.get(it.orderId) ?? [];
+      arr.push({ name: it.nameSnapshot, qty: Number(it.qty) });
+      itemsByOrder.set(it.orderId, arr);
+    }
+
     // Связи DeliveryInfo → Order в схеме нет, только orderId:
     // читаем заказы одним запросом и сопоставляем по id
     const orders = await this.prisma.order.findMany({
@@ -135,6 +148,11 @@ export class DeliveryController {
         address: i.address,
         phone: i.phone,
         comment: i.comment,
+        customerName: (i as any).customerName ?? null,
+        // Координаты для навигатора: 2ГИС строит маршрут точнее
+        // по точке, чем по текстовому адресу
+        lat: i.lat, lng: i.lng,
+        items: itemsByOrder.get(i.orderId) ?? [],
         promisedAt: i.promisedAt,
         deliveryFee: i.deliveryFee,
         total: orderById.get(i.orderId)?.total ?? 0,
