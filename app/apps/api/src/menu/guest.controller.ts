@@ -7,6 +7,7 @@
 // а знание не даёт ничего, кроме просмотра меню и вызова официанта.
 import { Controller, Get, Post, Body, Param, NotFoundException } from '@nestjs/common';
 import { IsString } from 'class-validator';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../core/prisma.service';
 
 class CallWaiterDto {
@@ -41,7 +42,7 @@ export class GuestController {
         },
         select: {
           id: true, name: true, nameKk: true, categoryId: true,
-          basePrice: true, imageUrl: true, nutrition: true,
+          basePrice: true, imageUrl: true,
         },
       }),
       this.prisma.stopListEntry.findMany({
@@ -90,7 +91,7 @@ export class GuestController {
 
     await this.prisma.eventLog.create({
       data: {
-        eventId: crypto.randomUUID(),
+        eventId: randomUUID(),
         accountId: table.hall.location.accountId,
         terminalId: null,
         type: 'guest.waiter_called',
