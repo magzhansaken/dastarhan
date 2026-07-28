@@ -33,9 +33,6 @@ export class ExportController {
       orderBy: { closedAt: 'asc' },
     });
 
-    const pays = await this.prisma.payment.findMany({
-      where: { orderId: { in: orders.map((o) => o.id) }, status: 'CAPTURED' },
-      select: { orderId: true, kind: true, amount: true },
     const payments = await this.prisma.payment.findMany({
       where: { orderId: { in: orders.map((o) => o.id) } },
       select: { orderId: true, kind: true },
