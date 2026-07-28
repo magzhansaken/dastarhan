@@ -2116,3 +2116,70 @@ enum NotifyLevel {
   WARN      // стоит посмотреть сегодня
   URGENT    // прямо сейчас, пробивает тихие часы
 }
+
+/// Чаевые. Ключевое правило учёта: это не выручка заведения,
+/// а деньги официанта. Попадут в доход — заведение заплатит
+/// налог с чужих денег и завысит показатели.
+model Tip {
+  id         String   @id @default(cuid())
+  accountId  String
+  locationId String
+  orderId    String?
+  /// Кому: конкретному официанту или в общий котёл
+  userId     String?
+  poolId     String?
+  amount     Int
+  method     TipMethod
+  /// Комиссия банка при переводе — официант получает меньше,
+  /// и он должен это знать заранее
+  feeAmount  Int      @default(0)
+  shiftId    String?
+  paidOutAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  @@index([accountId, createdAt])
+  @@index([userId, paidOutAt])
+}
+
+/// Общий котёл: чаевые делятся между сменой по долям.
+/// Повар и посудомойка тоже участвуют — без них зал не работает.
+model TipPool {
+  id         String   @id @default(cuid())
+  accountId  String
+  locationId String
+  shiftId    String?
+  date       DateTime
+  total      Int      @default(0)
+  status     TipPoolStatus @default(OPEN)
+  closedAt   DateTime?
+
+  shares     TipShare[]
+
+  @@index([accountId, date])
+}
+
+model TipShare {
+  id       String  @id @default(cuid())
+  poolId   String
+  pool     TipPool @relation(fields: [poolId], references: [id], onDelete: Cascade)
+  userId   String
+  /// Доля: официант 1.0, бармен 0.7, повар 0.5 — настраивается
+  weight   Decimal @default(1)
+  amount   Int     @default(0)
+  paidAt   DateTime?
+
+  @@unique([poolId, userId])
+}
+
+enum TipMethod {
+  CASH       // наличными в руки
+  CARD       // добавлены к оплате картой
+  QR         // перевод по QR официанту напрямую
+  KASPI      // Kaspi перевод
+}
+
+enum TipPoolStatus {
+  OPEN
+  CLOSED
+  PAID
+}

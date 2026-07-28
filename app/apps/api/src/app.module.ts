@@ -38,6 +38,7 @@ import { TransferController } from './stock/transfer.controller';
 import { ApiKeysController } from './platform/api-keys.controller';
 import { NotifyController } from './core/notify.controller';
 import { SetupController } from './auth/setup.controller';
+import { TipsController } from './cash/tips.controller';
 import { NotifyService } from './core/notify.service';
 import { ReservationsController } from './stock/reservations.controller';
 import { StaffController } from './staff/staff.controller';
@@ -72,7 +73,7 @@ import { VerticalsController } from './verticals/verticals.controller';
   ],
   controllers: [HealthController, SyncController, ReportsController, AuthController, MenuController, StockController, OrdersController,
     FinanceController, GuestsController,
-    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController, StaffController, DealerController, SupplyController, ButcheringController, DepositsController, AggregatorsController, ExportController, LoyaltyController, ModifiersController, ScalesController, PayrollController, InventoryController, PromoController, RefundsController, AuditController, BackupController, OwnerDigestController, ShelfLifeController, AttendanceController, BanquetController, ProductionController, TransferController, ApiKeysController, NotifyController, SetupController],
+    PlatformController, TerminalsController, DeliveryController, VerticalsController, FiscalController, ShiftController, SignupController, GuestController, KdsController, BillingController, AdminController, OnboardingController, HallController, TelegramController, ReservationsController, StaffController, DealerController, SupplyController, ButcheringController, DepositsController, AggregatorsController, ExportController, LoyaltyController, ModifiersController, ScalesController, PayrollController, InventoryController, PromoController, RefundsController, AuditController, BackupController, OwnerDigestController, ShelfLifeController, AttendanceController, BanquetController, ProductionController, TransferController, ApiKeysController, NotifyController, SetupController, TipsController],
   providers: [NotifyService, AuthService, PermissionsGuard, JwtGuard, PrismaService, OrderMaterializer, FiscalService, StockWriteoffService],
 })
 export class AppModule {}
