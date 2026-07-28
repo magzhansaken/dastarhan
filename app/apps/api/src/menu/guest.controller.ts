@@ -99,6 +99,44 @@ export class GuestController {
   }
 
   /**
+   * Заказ со стола. Не создаём заказ сразу — пишем событие,
+   * которое кассир подтверждает. Иначе шутник за столом
+   * набьёт кассе десять бешбармаков.
+   */
+  @Post('table-order')
+  async tableOrder(@Body() dto: { tableToken: string; items?: any[]; comment?: string }) {
+    const table = await this.prisma.diningTable.findFirst({
+      where: { id: dto.tableToken, isActive: true },
+      include: { hall: true },
+    });
+    if (!table) throw new NotFoundException({ code: 'TABLE_NOT_FOUND' });
+
+    const location = await this.prisma.location.findUnique({
+      where: { id: table.hall.locationId },
+      select: { accountId: true },
+    });
+    if (!location) throw new NotFoundException({ code: 'LOCATION_NOT_FOUND' });
+
+    await this.prisma.eventLog.create({
+      data: {
+        eventId: randomUUID(),
+        accountId: location.accountId,
+        terminalId: null,
+        type: 'guest.table_order',
+        payload: {
+          tableId: table.id,
+          tableName: table.name,
+          items: dto.items ?? [],
+          comment: dto.comment ?? null,
+        },
+        createdAt: new Date(),
+      },
+    }).catch(() => null);
+
+    return { ok: true, tableName: table.name, needsConfirm: true };
+  }
+
+  /**
    * Позвать официанта. Создаём событие, которое увидит зал —
    * гостю не нужно махать рукой и ловить взгляд.
    */
