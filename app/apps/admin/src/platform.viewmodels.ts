@@ -559,3 +559,44 @@ export const PLAN_FEATURE_MATRIX = {
   note: 'меняется без релиза, применяется к новым платежам',
   mrrLabel: 'MRR тарифа',
 } as const;
+
+// ═══════════════ ЗДОРОВЬЕ КЛИЕНТОВ ═══════════════
+// Экран отвечает на один вопрос: кому звонить сегодня.
+// Не «список клиентов с метриками», а очередь на обзвон.
+
+export const HEALTH_SCREEN = {
+  lead: 'Кто уйдёт, если сегодня не позвонить.',
+  updated: (ago: string) => `Обновлено ${ago}.`,
+  callList: (n: number) => `Обзвон на сегодня · ${n}`,
+  // Риск в деньгах, а не в количестве клиентов: шесть заведений
+  // звучит немного, 11% MRR — уже разговор
+  mrrShare: (pct: number) => `это ${pct}% от всего MRR`,
+  revenueDrop: 'минус 30% и больше',
+  search: 'Поиск по заведению',
+  withUs: 'С нами',
+  // Готовая зацепка для разговора: менеджер не думает, с чего начать,
+  // а сразу говорит по делу — «касса не в сети третий день»
+  opener: 'С чего начать разговор',
+  contact: 'Контакт',
+  grace: 'Отсрочка 7 дней',
+  history: (h: string) => `История: ${h}`,
+} as const;
+
+/** Доля клиента в общем MRR — чтобы понимать цену потери. */
+export function mrrShare(clientMrr: number, totalMrr: number): number {
+  if (totalMrr <= 0) return 0;
+  return Math.round((clientMrr / totalMrr) * 1000) / 10;
+}
+
+/** Зацепка для звонка по главному сигналу риска. */
+export function callOpener(signals: {
+  offlineDays?: number; noReceiptsDays?: number; revenueDropPct?: number;
+}): string {
+  if (signals.offlineDays && signals.offlineDays >= 2)
+    return `Касса не в сети ${signals.offlineDays} дня — спросить, что случилось`;
+  if (signals.noReceiptsDays && signals.noReceiptsDays >= 2)
+    return `Чеков нет ${signals.noReceiptsDays} дня — возможно, вернулись на старую систему`;
+  if (signals.revenueDropPct && signals.revenueDropPct <= -30)
+    return `Выручка упала на ${Math.abs(signals.revenueDropPct)}% — узнать, сезон это или проблема`;
+  return 'Плановый звонок — спросить, всё ли устраивает';
+}
