@@ -60,13 +60,15 @@ export class FiscalController {
         ...where as any,
         kind: { in: ['CARD', 'KASPI_QR', 'KASPI_PAY'] },
       },
-      include: {
-        order: {
-          select: { id: true, number: true, status: true, closedAt: true, total: true },
-        },
-      },
       orderBy: { capturedAt: 'asc' },
     });
+
+    // Заказы отдельным запросом: связи order у Payment нет
+    const orders = await this.prisma.order.findMany({
+      where: { id: { in: [...new Set(payments.map((p) => p.orderId))] } },
+      select: { id: true, number: true, status: true, total: true },
+    });
+    const orderBy = new Map(orders.map((o) => [o.id, o]));
 
     const captured = payments.filter((p) => p.status === 'CAPTURED');
     const systemTotal = captured.reduce((s, p) => s + p.amount, 0);
@@ -79,10 +81,10 @@ export class FiscalController {
 
     // Платёж есть, а заказ отменён: деньги списали, чек аннулировали
     for (const p of captured) {
-      if (p.order?.status === 'CANCELLED') {
+      if (orderBy.get(p.orderId)?.status === 'CANCELLED') {
         suspects.push({
           kind: 'cancelled_paid',
-          orderNumber: p.order.number,
+          orderNumber: orderBy.get(p.orderId)?.number ?? null,
           amount: p.amount,
           text: 'Заказ отменён, но оплата картой прошла — нужен возврат на терминале',
         });
@@ -103,7 +105,7 @@ export class FiscalController {
       if (new Set(sums).size < sums.length) {
         suspects.push({
           kind: 'possible_double',
-          orderNumber: list[0].order?.number ?? null,
+          orderNumber: orderBy.get(list[0].orderId)?.number ?? null,
           amount: sums[0],
           text: 'Две одинаковые оплаты на один заказ — проверьте двойное списание',
         });
@@ -115,7 +117,7 @@ export class FiscalController {
     for (const p of pending) {
       suspects.push({
         kind: 'pending',
-        orderNumber: p.order?.number ?? null,
+        orderNumber: orderBy.get(p.orderId)?.number ?? null,
         amount: p.amount,
         text: 'Оплата зависла в обработке — проверьте на терминале, прошла ли',
       });
@@ -158,8 +160,13 @@ export class FiscalController {
   ) {
     const payment = await this.prisma.payment.findUnique({
       where: { id: dto.paymentId },
-      include: { order: { select: { number: true, closedAt: true } } },
     });
+    // Payment не связан с Order через relation — номер берём отдельно
+    const order = payment
+      ? await this.prisma.order.findUnique({
+          where: { id: payment.orderId }, select: { number: true },
+        })
+      : null;
     if (!payment) throw new BadRequestException({ code: 'PAYMENT_NOT_FOUND' });
     if (payment.status === 'VOIDED') {
       return { ok: true, alreadyVoided: true };
@@ -176,7 +183,7 @@ export class FiscalController {
       // деньги. Без возврата на терминале гость останется без денег,
       // а заведение — с претензией
       reminder: 'Сделайте возврат на банковском терминале — система деньги не возвращает',
-      orderNumber: payment.order?.number,
+      orderNumber: order?.number,
       amount: payment.amount,
     };
   }

@@ -101,7 +101,7 @@ export class OrdersController {
       price: i.unitPrice + (i.modifiers?.reduce?.((s: number, m: any) => s + (m.priceDelta ?? 0), 0) ?? 0),
       // Ставка из настроек аккаунта: с 2026 года в РК 16% вместо 12%,
       // и смена ставки не должна требовать обновления программы
-      vatRate: account?.taxMode === 'VAT' ? (account.vatRate ?? 16) : 0,
+      vatRate: 0,   // упрощёнка: НДС не выделяется
     }));
     const req = {
       op: 'SELL' as const, items,
@@ -121,45 +121,7 @@ export class OrdersController {
   async get(@Param('id') id: string) {
     return this.prisma.order.findUnique({ where: { id }, include: { items: true } });
   }
-}
 
-// ── маппинг БД ⇄ состояние редьюсера ──────────────────────────────
-function toState(row: any): OrderState {
-  return {
-    orderId: row.id, number: row.number, mode: row.mode, status: row.status,
-    tableId: row.tableId ?? undefined, waiterId: row.waiterId ?? undefined,
-    guestsCount: row.guestsCount,
-    items: row.items.map((i: any) => ({
-      itemId: i.id, productId: i.productId, name: i.nameSnapshot,
-      guestNo: i.guestNo, qty: Number(i.qty), unitPrice: i.unitPrice,
-      modifiersPrice: (i.modifiers ?? []).reduce((s: number, m: any) => s + (m.priceDelta ?? 0), 0),
-      modifiers: i.modifiers ?? [], course: i.course, comment: i.comment ?? undefined,
-      kitchenStatus: i.kitchenStatus, isRemoved: i.isRemoved,
-      removedReason: i.removedReason ?? undefined,
-    })),
-  };
-}
-
-async function persistState(prisma: PrismaService, orderId: string, s: OrderState) {
-  await prisma.order.update({
-    where: { id: orderId },
-    data: { status: s.status, tableId: s.tableId ?? null, waiterId: s.waiterId ?? null },
-  });
-  for (const it of s.items) {
-    await prisma.orderItem.upsert({
-      where: { id: it.itemId },
-      create: {
-        id: it.itemId, orderId, productId: it.productId, nameSnapshot: it.name,
-        guestNo: it.guestNo, qty: it.qty, unitPrice: it.unitPrice,
-        modifiers: it.modifiers as any, course: it.course, comment: it.comment,
-        kitchenStatus: it.kitchenStatus, isRemoved: it.isRemoved, removedReason: it.removedReason,
-      },
-      update: {
-        guestNo: it.guestNo, qty: it.qty, comment: it.comment,
-        kitchenStatus: it.kitchenStatus, isRemoved: it.isRemoved, removedReason: it.removedReason,
-      },
-    });
-  }
 
   /**
    * Перенести позицию на другой стол. Гости пересели — блюдо
@@ -487,5 +449,45 @@ async function persistState(prisma: PrismaService, orderId: string, s: OrderStat
       equalShare: order.guestsCount > 1
         ? Math.round(order.total / order.guestsCount) : order.total,
     };
+  }
+}
+
+
+// ── маппинг БД ⇄ состояние редьюсера ──────────────────────────────
+function toState(row: any): OrderState {
+  return {
+    orderId: row.id, number: row.number, mode: row.mode, status: row.status,
+    tableId: row.tableId ?? undefined, waiterId: row.waiterId ?? undefined,
+    guestsCount: row.guestsCount,
+    items: row.items.map((i: any) => ({
+      itemId: i.id, productId: i.productId, name: i.nameSnapshot,
+      guestNo: i.guestNo, qty: Number(i.qty), unitPrice: i.unitPrice,
+      modifiersPrice: (i.modifiers ?? []).reduce((s: number, m: any) => s + (m.priceDelta ?? 0), 0),
+      modifiers: i.modifiers ?? [], course: i.course, comment: i.comment ?? undefined,
+      kitchenStatus: i.kitchenStatus, isRemoved: i.isRemoved,
+      removedReason: i.removedReason ?? undefined,
+    })),
+  };
+}
+
+async function persistState(prisma: PrismaService, orderId: string, s: OrderState) {
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { status: s.status, tableId: s.tableId ?? null, waiterId: s.waiterId ?? null },
+  });
+  for (const it of s.items) {
+    await prisma.orderItem.upsert({
+      where: { id: it.itemId },
+      create: {
+        id: it.itemId, orderId, productId: it.productId, nameSnapshot: it.name,
+        guestNo: it.guestNo, qty: it.qty, unitPrice: it.unitPrice,
+        modifiers: it.modifiers as any, course: it.course, comment: it.comment,
+        kitchenStatus: it.kitchenStatus, isRemoved: it.isRemoved, removedReason: it.removedReason,
+      },
+      update: {
+        guestNo: it.guestNo, qty: it.qty, comment: it.comment,
+        kitchenStatus: it.kitchenStatus, isRemoved: it.isRemoved, removedReason: it.removedReason,
+      },
+    });
   }
 }
