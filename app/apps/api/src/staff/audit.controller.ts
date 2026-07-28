@@ -82,7 +82,8 @@ export class AuditController {
       const p = e.payload as any;
       const meta = WATCHED[e.type] ?? { label: e.type, risk: 'low' as const };
       return {
-        id: e.id,
+        // Первичный ключ EventLog — eventId, генерируется на устройстве
+        id: e.eventId,
         at: e.createdAt,
         type: e.type,
         label: meta.label,
@@ -148,7 +149,11 @@ export class AuditController {
     });
     const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
 
-    const rows = [];
+    const rows: {
+      userId: string; name: string; total: number;
+      shifts: number; orders: number; per100Orders: number | null;
+      breakdown: { type: string; label: string; count: number }[];
+    }[] = [];
     for (const [uid, v] of byUser) {
       const shifts = await this.prisma.cashShift.count({
         where: { openedBy: uid, openedAt: { gte: from } },

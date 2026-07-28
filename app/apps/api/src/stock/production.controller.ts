@@ -85,7 +85,11 @@ export class ProductionController {
     const haveBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
     const prodBy = new Map(products.map((p) => [p.id, p]));
 
-    const rows = [];
+    const rows: {
+      productId: string; name: string; unit: string | null;
+      avgUsage: number; haveQty: number; toCook: number;
+      shelfLifeHours: number | null; advice: string | null;
+    }[] = [];
     for (const id of prepackIds) {
       const u = usage.get(id);
       if (!u || !u.days.size) continue;
