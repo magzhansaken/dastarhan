@@ -5,10 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import './admin.css';
 import './platform.css';
-// Компоненты живут в apps/vendor: отдельного пакета vendor-ui
-// в проекте нет, поэтому берём напрямую по относительному пути
-import { VendorShell, TicketsScreen, FeatureMatrix } from '../../vendor/src/VendorShell';
-import { VendorPulse, ClientHealth } from '../../vendor/src/VendorScreens';
+import { VendorShell, TicketsScreen, FeatureMatrix, VendorPulse, ClientHealth } from '@dastarhan/vendor-ui';
 import type { Ticket } from '@dastarhan/shared/platform/ticket.logic';
 import { DunningScreen } from './AdminScreens';
 

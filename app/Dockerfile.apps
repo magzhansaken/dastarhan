@@ -11,6 +11,10 @@ COPY apps/courier ./apps/courier
 COPY apps/guest ./apps/guest
 COPY apps/admin ./apps/admin
 COPY apps/vendor ./apps/vendor
+# billing и dealer — рабочие пакеты, от которых зависит админка.
+# Без них pnpm не соберёт workspace
+COPY apps/billing ./apps/billing
+COPY apps/dealer ./apps/dealer
 RUN pnpm install --no-frozen-lockfile
 RUN cd apps/backoffice && pnpm exec vite build --base=/office/
 RUN cd apps/kds && pnpm exec vite build --base=/kds/
