@@ -1,4 +1,4 @@
-import { STRINGS, t, i18nGaps } from './i18n.ts';
+import { STRINGS, t, i18nGaps } from '../i18n.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,100)}`))};

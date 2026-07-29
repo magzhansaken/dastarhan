@@ -2,9 +2,9 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { priceDeviation, supplyRowSum, supplyDocTotals, invRowDiff, invTotals,
   sortByMoneyImpact, SupplyScreen, InventoryScreen, foodcostImpact,
-  shortageVerdict, rowDiffHint } from './stockscreens.tsx';
-import { foodcostLevel, FOODCOST_LEVEL, stockForecast, monthlyMargin } from './bo.ts';
-import type { SupplyRow, InvRow } from './stockscreens.tsx';
+  shortageVerdict, rowDiffHint } from '../StockScreens.tsx';
+import { foodcostLevel, FOODCOST_LEVEL, stockForecast, monthlyMargin } from '../../viewmodels.ts';
+import type { SupplyRow, InvRow } from '../StockScreens.tsx';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

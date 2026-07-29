@@ -4,8 +4,8 @@
 // глубина редакторов — QuickResto (статья «Блюда» 95K), но с ЖИВЫМ
 // пересчётом фудкоста при каждом вводе (у QR цифра статична).
 
-import { unitCost } from '../../../packages/shared/src/menu/cost.service';
-import type { CostContext } from '../../../packages/shared/src/menu/cost.service';
+import { unitCost } from '@dastarhan/shared/menu/cost.service';
+import type { CostContext } from '@dastarhan/shared/menu/cost.service';
 
 export type Money = number;
 

@@ -1,11 +1,11 @@
 import { resolvePermission, isAllowed, pinRequirement, canElevate, checkAction,
-  ROLE_PRESETS, PERMISSION_GROUPS, PERMISSIONS, PERMISSION_STATE_LABELS, ROLE_RANK } from './perm.ts';
+  ROLE_PRESETS, PERMISSION_GROUPS, PERMISSIONS, PERMISSION_STATE_LABELS, ROLE_RANK } from '../permissions.ts';
 import { tipSlug, uniqueTipSlug, tipLink, goesThroughBusiness, tipMethodNote,
-  tipsSummary, revenueWithoutTips, splitTipPool, tipQrPayload } from './tips.ts';
-import type { TipRecord } from './tips.ts';
+  tipsSummary, revenueWithoutTips, splitTipPool, tipQrPayload } from '../staff/tips.logic.ts';
+import type { TipRecord } from '../staff/tips.logic.ts';
 import { mrr, arr, arpa, churnPct, newBySource, trialConversion,
-  medianTimeToFirstReceiptHours, assessRisk, healthSummary, callQueue } from './vmet.ts';
-import type { AccountMetric, AccountTelemetry } from './vmet.ts';
+  medianTimeToFirstReceiptHours, assessRisk, healthSummary, callQueue } from '../platform/vendor.metrics.ts';
+import type { AccountMetric, AccountTelemetry } from '../platform/vendor.metrics.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,120)} want ${JSON.stringify(w).slice(0,120)}`))};

@@ -1,9 +1,9 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { delta, salesReport, filterChecks, checksSummary, pnlView, abcHint, salaryStatement,
-  abcRole, abcGroup, ABC_GROUP, reportSubtitle, peakAdvice, CHECK_FILTERS, CHECK_EMPTY } from './repvm.ts';
-import type { SaleRow, CheckRow } from './repvm.ts';
-import { SalesScreen, ChecksScreen, PnlScreen, CashFlowScreen, AbcScreen, SalaryScreen } from './repscreens.tsx';
+  abcRole, abcGroup, ABC_GROUP, reportSubtitle, peakAdvice, CHECK_FILTERS, CHECK_EMPTY } from '../report.viewmodels.ts';
+import type { SaleRow, CheckRow } from '../report.viewmodels.ts';
+import { SalesScreen, ChecksScreen, PnlScreen, CashFlowScreen, AbcScreen, SalaryScreen } from '../ReportScreens.tsx';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

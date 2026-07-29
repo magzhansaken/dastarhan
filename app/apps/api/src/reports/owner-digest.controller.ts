@@ -71,7 +71,7 @@ export class OwnerDigestController {
       const balances = await this.prisma.stockBalance.findMany({
         where: { productId: { in: limits.map((l: any) => l.productId) } },
       });
-      const balBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
+      const balBy = new Map(balances.map((b) => [b.productId, Number(b.qty)] as const));
       const low = (limits as any[]).filter((l) => (balBy.get(l.productId) ?? 0) <= Number(l.minQty));
       if (low.length) {
         const names = await this.prisma.product.findMany({

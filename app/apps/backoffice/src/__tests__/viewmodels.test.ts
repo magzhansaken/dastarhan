@@ -1,7 +1,7 @@
 import { buildNav, dashCards, lossPct, liveCost, tcErrors,
-  supplyTotals, supplyErrors, onboardingSteps, onboardingProgress } from './bo.ts';
-import type { TcLine } from './bo.ts';
-import type { CostContext } from './cost.ts';
+  supplyTotals, supplyErrors, onboardingSteps, onboardingProgress } from '../viewmodels.ts';
+import type { TcLine } from '../viewmodels.ts';
+import type { CostContext } from '../../../../packages/shared/src/menu/cost.service.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};

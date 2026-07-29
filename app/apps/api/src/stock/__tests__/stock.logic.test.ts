@@ -1,7 +1,7 @@
 import { applySupply, applyConsume, applyTransfer, applyProduction, applyButchering,
   inventoryDiff, applyInventory, actualizeNegatives, canPost, canVoid, stornoMovements,
-  getBal, StockError } from './stock.ts';
-import type { BalanceMap, InvLine } from './stock.ts';
+  getBal, StockError } from '../../../../../packages/shared/src/stock/stock.logic.ts';
+import type { BalanceMap, InvLine } from '../../../../../packages/shared/src/stock/stock.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};

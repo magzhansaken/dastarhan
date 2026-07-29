@@ -331,7 +331,7 @@ export class ReportsController {
       select: { customerId: true, orderId: true },
     });
     const orderIds = deliveries.map((d) => d.orderId);
-    const custByOrder = new Map(deliveries.map((d) => [d.orderId, d.customerId!]));
+    const custByOrder = new Map(deliveries.map((d) => [d.orderId, d.customerId!] as const));
 
     const orders = (await this.prisma.order.findMany({
       where: {
@@ -368,7 +368,7 @@ export class ReportsController {
       where: { id: { in: [...byGuest.keys()] } },
       select: { id: true, name: true, phone: true },
     });
-    const nameBy = new Map(customers.map((c) => [c.id, c]));
+    const nameBy = new Map(customers.map((c) => [c.id, c] as const));
 
     // Пороги считаем от своих данных, а не от абстрактных норм:
     // для чайханы «часто» — это раз в неделю, для банкетного зала —

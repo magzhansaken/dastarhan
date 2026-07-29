@@ -172,7 +172,7 @@ export class LoyaltyController {
       where: { id: { in: orderIds } },
       select: { id: true, total: true },
     });
-    const totalBy = new Map(orders.map((o) => [o.id, o.total]));
+    const totalBy = new Map(orders.map((o) => [o.id, o.total] as const));
 
     return rows.map((c) => {
       const given = c.uses.reduce((s, u) => s + u.amount, 0);

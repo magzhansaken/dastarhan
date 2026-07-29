@@ -1,9 +1,9 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { BillingScreen } from './billscr.tsx';
-import { DealerCabinet } from './dealscr.tsx';
-import type { Invoice, LocationBilling } from './bill.ts';
-import type { DealerClient, MonthlyAccrual, DemoStand } from './dealer.ts';
+import { BillingScreen } from '../../../billing/src/BillingScreens.tsx';
+import { DealerCabinet } from '../DealerScreens.tsx';
+import type { Invoice, LocationBilling } from '../../../../packages/shared/src/platform/billing.logic.ts';
+import type { DealerClient, MonthlyAccrual, DemoStand } from '../../../../packages/shared/src/platform/dealer.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

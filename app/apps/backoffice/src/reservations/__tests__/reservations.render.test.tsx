@@ -2,8 +2,8 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { validateReservation, tableReservationBadge, detectNoShows, guestRiskNote,
   reservationGrid, ReservationsScreen, ReservationError,
-  RES_T, rt, VISIT_OCCASIONS, guestsLabel, expectedGuests } from './resv.tsx';
-import type { Reservation } from './resv.tsx';
+  RES_T, rt, VISIT_OCCASIONS, guestsLabel, expectedGuests } from '../Reservations.tsx';
+import type { Reservation } from '../Reservations.tsx';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

@@ -101,7 +101,7 @@ export class InventoryController {
       where: { id: { in: inv.lines.map((l) => l.productId) } },
       select: { id: true, name: true, unit: true, sku: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
 
     // Движения после старта: считаем один раз здесь, чтобы
     // кладовщик видел актуальную картину, не проводя документ

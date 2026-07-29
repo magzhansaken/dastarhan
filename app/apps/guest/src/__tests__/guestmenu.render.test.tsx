@@ -1,8 +1,8 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { itemName, guestMenu, cartAdd, cartTotal, buildTableOrder, GuestMenuPage, TAG_BADGES,
-  TAG_NAMES, serviceCharge } from './guest.tsx';
-import type { GuestMenuItem } from './guest.tsx';
+  TAG_NAMES, serviceCharge } from '../GuestMenu.tsx';
+import type { GuestMenuItem } from '../GuestMenu.tsx';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

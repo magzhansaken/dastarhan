@@ -1,9 +1,9 @@
 // Тесты соответствия экранов кассы макетам Claude Design
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { OrderScreen, PaymentScreen, PinScreen, LangToggle, fiscalBadge, T, t } from './screens.tsx';
-import { reduceOrder } from './order.ts';
-import type { OrderState } from './order.ts';
+import { OrderScreen, PaymentScreen, PinScreen, LangToggle, fiscalBadge, T, t } from '../screens/PosScreens.tsx';
+import { reduceOrder } from '../../../../../packages/shared/src/order/orderReducer.ts';
+import type { OrderState } from '../../../../../packages/shared/src/order/orderReducer.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,90)}`))};

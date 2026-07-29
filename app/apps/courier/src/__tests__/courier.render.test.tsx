@@ -1,10 +1,10 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { telLink, navLink, lateBadge, tripSummary, doorChangeHints, CourierApp, RETURN_REASONS,
-  CT, ct, etaLabel } from './courier.tsx';
-import type { CourierOrderVm } from './courier.tsx';
-import { newTrip, assignToTrip, markDelivered } from './del.ts';
-import type { Trip } from './del.ts';
+  CT, ct, etaLabel } from '../CourierApp.tsx';
+import type { CourierOrderVm } from '../CourierApp.tsx';
+import { newTrip, assignToTrip, markDelivered } from '../../../../packages/shared/src/delivery/delivery.logic.ts';
+import type { Trip } from '../../../../packages/shared/src/delivery/delivery.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

@@ -59,7 +59,7 @@ export class GuestController {
     ]);
 
     const stopped = new Set(stops.map((s) => s.productId));
-    const priceBy = new Map(prices.map((p) => [p.productId, p.price]));
+    const priceBy = new Map(prices.map((p) => [p.productId, p.price] as const));
 
     return {
       shopName: location.account.name,

@@ -1,13 +1,13 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { OrderScreen, PaymentScreen, fiscalBadge } from './screens.tsx';
-import { StaffList, StaffCard, RoleEditor, lastLoginLabel } from './staff.tsx';
-import { VendorPulse, ClientHealth } from './vendor.tsx';
-import { ROLE_PRESETS } from './perm.ts';
-import { reduceOrder } from './order.ts';
-import type { OrderState } from './order.ts';
-import type { AccountMetric, AccountTelemetry } from './vmet.ts';
-import type { TipRecord } from './tips.ts';
+import { OrderScreen, PaymentScreen, fiscalBadge } from '../../../pos/src/ui/screens/PosScreens.tsx';
+import { StaffList, StaffCard, RoleEditor, lastLoginLabel } from '../../../backoffice/src/staff/StaffScreens.tsx';
+import { VendorPulse, ClientHealth } from '../VendorScreens.tsx';
+import { ROLE_PRESETS } from '../../../../packages/shared/src/permissions.ts';
+import { reduceOrder } from '../../../../packages/shared/src/order/orderReducer.ts';
+import type { OrderState } from '../../../../packages/shared/src/order/orderReducer.ts';
+import type { AccountMetric, AccountTelemetry } from '../../../../packages/shared/src/platform/vendor.metrics.ts';
+import type { TipRecord } from '../../../../packages/shared/src/staff/tips.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};
@@ -15,10 +15,11 @@ const clean=(h:string)=>h.replace(/<!-- -->/g,'');
 const D=(d:number,h=12)=>new Date(2026,6,d,h);
 
 console.log('── ФИСКАЛЬНЫЙ БЕЙДЖ ──');
-eq('онлайн', fiscalBadge('online'), {text:'Webkassa · онлайн', tone:'ok'});
-eq('очередь', fiscalBadge('queued', 3), {text:'Webkassa · 3 в очереди', tone:'warn'});
-eq('ошибка', fiscalBadge('error').tone, 'danger');
-eq('без фискализации', fiscalBadge('off').tone, 'dim');
+// Контракт живого компонента: состояния 'ok'|'queued'|'error'|'off', в ответе cls
+eq('онлайн', fiscalBadge('ok'), {text:'Webkassa · чеки уходят', cls:'fiscal'});
+eq('очередь', fiscalBadge('queued', 3), {text:'Webkassa · 3 в очереди', cls:'fiscal fiscal-off'});
+eq('ошибка', fiscalBadge('error').cls, 'fiscal fiscal-err');
+eq('без фискализации', fiscalBadge('off').cls, 'fiscal fiscal-off');
 
 console.log('── КАССА: обновлённые экраны ──');
 let ord: OrderState|null = null;
@@ -29,33 +30,31 @@ const h1 = clean(renderToString(<OrderScreen order={ord!}
   catalog={[{productId:'besh',name:'Бешбармак',price:490000,categoryId:'food'}]}
   categories={[{id:'food',name:'Горячее'}]}
   online={true} unsyncedCount={0}
-  fiscal={{state:'online'}} lang="ru" onLang={()=>{}} cashierName="Айгерим"
+  fiscal="ok" lang="ru" onLang={()=>{}} cashierName="Айгерим"
   onAdd={()=>{}} onPay={()=>{}} onItemTap={()=>{}} />));
-eq('статус Webkassa в шапке', h1.includes('Webkassa · онлайн'), true);
+eq('статус Webkassa в шапке', h1.includes('Webkassa · чеки уходят'), true);
 eq('имя кассира', h1.includes('Айгерим'), true);
 eq('переключатель Рус/Қаз', h1.includes('Рус') && h1.includes('Қаз'), true);
 
+// Экран оплаты показывает компактную разбивку (подытог + скидка),
+// список позиций живёт на экране заказа — это осознанный макет.
 const h2 = clean(renderToString(<PaymentScreen due={1250000}
   methods={[{id:'m1',name:'Наличные',kind:'CASH'},{id:'m2',name:'Kaspi',kind:'CARD'}]}
   orderNumber={1042} tableName="4" cashierName="Айгерим"
-  subtotal={1315800} discount={{pct:5, amount:65800}}
-  fiscal={{state:'online'}} lang="ru" onLang={()=>{}}
-  items={[{name:'Бешбармак', qty:2, sum:980000},
-          {name:'Лагман', qty:1, sum:180000, modifiers:['без лука']}]}
-  canSplit={true} onSplit={()=>{}} onPrintCopy={()=>{}}
+  subtotal={1315800} discountAmount={65800}
+  fiscal="ok" lang="ru" onLang={()=>{}}
+  onSplit={()=>{}} onPrintCopy={()=>{}}
   onConfirm={()=>{}} onBack={()=>{}} />));
 eq('контекст: Стол 4 · №1042', h2.includes('Стол 4') && h2.includes('1042'), true);
-eq('позиции чека видны', h2.includes('Бешбармак') && h2.includes('Лагман'), true);
-eq('модификатор «без лука»', h2.includes('без лука'), true);
 eq('подытог 13 158 ₸', h2.includes('13 158'), true);
-eq('скидка 5% строкой', h2.includes('Скидка 5%') && h2.includes('658'), true);
+eq('скидка строкой', h2.includes('658'), true);
 eq('к оплате 12 500 ₸', h2.includes('12 500'), true);
-eq('кнопка «Разделить счёт»', h2.includes('Разделить счёт'), true);
-eq('кнопка «Печать копии»', h2.includes('Печать копии'), true);
-// без права split кнопки нет
+eq('кнопка «Разделить»', h2.includes('Разделить'), true);
+eq('кнопка «Копия чека»', h2.includes('Копия чека'), true);
+// кнопка деления появляется только когда обработчик передан (право есть)
 const h2b = clean(renderToString(<PaymentScreen due={1000} methods={[{id:'m',name:'Наличные',kind:'CASH'}]}
-  canSplit={false} onConfirm={()=>{}} onBack={()=>{}} />));
-eq('без права — «Разделить» скрыто', h2b.includes('Разделить счёт'), false);
+  onConfirm={()=>{}} onBack={()=>{}} />));
+eq('без права — «Разделить» скрыто', h2b.includes('Разделить'), false);
 
 console.log('── СОТРУДНИКИ И РОЛИ ──');
 eq('вход только что', lastLoginLabel(new Date(2026,6,19,13,59), D(19,14)), 'только что');

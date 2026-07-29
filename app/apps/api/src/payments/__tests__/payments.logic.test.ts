@@ -1,7 +1,7 @@
 import { paidTotal, remainingDue, validateNewPayment, change, canCloseOrder, voidPayment,
   validateRefund, validateFiscalRequest, nextRetryDelayMs, planRetry, dueForRetry,
-  terminalStart, terminalResolve, PayError } from './pay.ts';
-import type { Pay, QueueItem, FiscalRequest } from './pay.ts';
+  terminalStart, terminalResolve, PayError } from '../payments.logic.ts';
+import type { Pay, QueueItem, FiscalRequest } from '../payments.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};

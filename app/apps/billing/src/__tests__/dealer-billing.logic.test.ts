@@ -1,10 +1,10 @@
 import { currentTier, nextTierProgress, DEALER_TIERS, isCommissionable,
   splitWithParent, subDealersOf, payableNow, MIN_PAYOUT, extendDemo,
-  DEMO_MAX_EXTENSIONS, DealerError } from './deal.ts';
-import type { DealerNode, Attribution } from './deal.ts';
+  DEMO_MAX_EXTENSIONS, DealerError } from '../../../../packages/shared/src/platform/dealer.logic.ts';
+import type { DealerNode, Attribution } from '../../../../packages/shared/src/platform/dealer.logic.ts';
 import { PLANS, planByKey, hasFeature, minPlanFor, featureLock,
   featuresLostOnDowngrade, nextInvoice, PLAN_FEATURES, FEATURE_TITLES,
-  INVOICE_LEAD_DAYS } from './bill.ts';
+  INVOICE_LEAD_DAYS } from '../../../../packages/shared/src/platform/billing.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,120)} want ${JSON.stringify(w).slice(0,120)}`))};

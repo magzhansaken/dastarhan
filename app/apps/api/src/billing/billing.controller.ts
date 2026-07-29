@@ -51,7 +51,7 @@ export class BillingController {
       _count: { id: true },
     }).catch(() => [] as any[]);
 
-    const termBy = new Map((terminals as any[]).map((t) => [t.locationId, t._count.id]));
+    const termBy = new Map((terminals as any[]).map((t) => [t.locationId, t._count.id] as const));
     const included = plan?.terminalsPerLocation ?? 1;
     const extra = locations.reduce(
       (s, l) => s + Math.max(0, (termBy.get(l.id) ?? 0) - included), 0);

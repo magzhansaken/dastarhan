@@ -127,7 +127,7 @@ export class DeliveryController {
       where: { id: { in: infos.map((i) => i.orderId) } },
       select: { id: true, number: true, total: true, status: true },
     });
-    const orderById = new Map(orders.map((o) => [o.id, o]));
+    const orderById = new Map(orders.map((o) => [o.id, o] as const));
 
     // Долг = собрано наличными минус сданное. Курьер видит эту цифру
     // в шапке приложения постоянно — чтобы знать, сколько сдавать

@@ -65,8 +65,8 @@ function HallScreen({ token, onTable, onTakeaway }: {
     </div>
   );
 }
-import { reduceOrder, orderTotals } from '../../../packages/shared/src/order/orderReducer';
-import type { OrderState } from '../../../packages/shared/src/order/orderReducer';
+import { reduceOrder, orderTotals } from '@dastarhan/shared/order/orderReducer';
+import type { OrderState } from '@dastarhan/shared/order/orderReducer';
 
 // В упакованном приложении (Android через Capacitor, Windows через Tauri)
 // относительных путей нет — сервер указывается явно.

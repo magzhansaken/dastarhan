@@ -178,7 +178,7 @@ export class AttendanceController {
       where: { id: { in: [...new Set(rows.map((r) => r.userId))] } },
       select: { id: true, fullName: true },
     });
-    const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
+    const nameBy = new Map(users.map((u) => [u.id, u.fullName] as const));
 
     const byUser = new Map<string, {
       days: number; minutes: number; issues: number; late: number;
@@ -232,7 +232,7 @@ export class AttendanceController {
       where: { id: { in: rows.map((r) => r.userId) } },
       select: { id: true, fullName: true },
     });
-    const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
+    const nameBy = new Map(users.map((u) => [u.id, u.fullName] as const));
 
     const now = Date.now();
     return {

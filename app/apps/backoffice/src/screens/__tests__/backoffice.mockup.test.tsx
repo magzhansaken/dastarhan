@@ -1,8 +1,8 @@
 // Соответствие бэк-офиса макетам Claude Design
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { Dashboard, BackofficeShell, BT, bt } from './boscreens.tsx';
-import { buildNav } from './bo.ts';
+import { Dashboard, BackofficeShell, BT, bt } from '../BackofficeScreens.tsx';
+import { buildNav } from '../../viewmodels.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,90)}`))};

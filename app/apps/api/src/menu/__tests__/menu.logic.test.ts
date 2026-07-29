@@ -1,7 +1,7 @@
-import { unitCost, portionCost, foodCostPct, explodeWriteOff, pickVersion, CycleError } from './cost.ts';
-import type { CostContext } from './cost.ts';
-import { applyDefaults, validateSelection, itemPrice, ModifierValidationError } from './mods.ts';
-import type { GroupDef } from './mods.ts';
+import { unitCost, portionCost, foodCostPct, explodeWriteOff, pickVersion, CycleError } from '../../../../../packages/shared/src/menu/cost.service.ts';
+import type { CostContext } from '../../../../../packages/shared/src/menu/cost.service.ts';
+import { applyDefaults, validateSelection, itemPrice, ModifierValidationError } from '../modifiers.service.ts';
+import type { GroupDef } from '../modifiers.service.ts';
 
 let pass=0, fail=0;
 function eq(name: string, got: any, want: any) {

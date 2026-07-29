@@ -1,4 +1,4 @@
 // Реэкспорт из общего пакета: одна и та же логика заказа на кассе и в API.
 // Событие, применённое офлайн на кассе, даст тот же результат
 // при синхронизации на сервере — сходимость гарантирована.
-export * from '../../../../packages/shared/src/order/orderReducer';
+export * from '@dastarhan/shared/order/orderReducer';

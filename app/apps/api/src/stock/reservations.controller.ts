@@ -152,4 +152,22 @@ export class ReservationsController {
     }).catch(() => null);
     return { ok: true, status: 'NO_SHOW' };
   }
+
+  /** Гость сел за стол: администратор отмечает прямо в шахматке. */
+  @Patch(':id/seat')
+  async seat(@Param('id') id: string) {
+    await this.prisma.reservation.update({
+      where: { id }, data: { status: 'SEATED' },
+    }).catch(() => null);
+    return { ok: true, status: 'SEATED' };
+  }
+
+  /** Отмена брони: стол сразу освобождается в шахматке. */
+  @Patch(':id/cancel')
+  async cancel(@Param('id') id: string) {
+    await this.prisma.reservation.update({
+      where: { id }, data: { status: 'CANCELLED' },
+    }).catch(() => null);
+    return { ok: true, status: 'CANCELLED' };
+  }
 }

@@ -93,7 +93,7 @@ export class StockWriteoffService {
       where: { id: { in: [...totalNeed.keys()] } },
       select: { id: true, name: true, unit: true },
     });
-    const unitById = new Map(comps.map((c) => [c.id, c]));
+    const unitById = new Map(comps.map((c) => [c.id, c] as const));
 
     for (const [productId, qty] of totalNeed) {
       const c = unitById.get(productId);

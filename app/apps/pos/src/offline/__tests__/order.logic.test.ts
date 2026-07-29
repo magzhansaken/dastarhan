@@ -1,6 +1,6 @@
 import { reduceOrder, orderTotals, totalsByGuest, expectedCash, shiftDiscrepancy,
-  checkStopList, consumeStop, DomainError } from './order.ts';
-import type { OrderState, OrderEvent } from './order.ts';
+  checkStopList, consumeStop, DomainError } from '../../../../../packages/shared/src/order/orderReducer.ts';
+import type { OrderState, OrderEvent } from '../../../../../packages/shared/src/order/orderReducer.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w)||(typeof g==='number'&&Math.abs(g-w)<0.001);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};

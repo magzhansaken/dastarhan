@@ -9,8 +9,8 @@ import React, { useMemo, useState } from 'react';
 import {
   mrr, arr, arpa, churnPct, newBySource, trialConversion,
   assessRisk, healthSummary, callQueue,
-} from '../../../packages/shared/src/platform/vendor.metrics';
-import type { AccountMetric, AccountTelemetry, RiskRow, RiskLevel } from '../../../packages/shared/src/platform/vendor.metrics';
+} from '@dastarhan/shared/platform/vendor.metrics';
+import type { AccountMetric, AccountTelemetry, RiskRow, RiskLevel } from '@dastarhan/shared/platform/vendor.metrics';
 
 const fmt = (t: number) => `${Math.trunc(t / 100).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;
 

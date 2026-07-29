@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { ProfitScreen } from './repscreens.tsx';
-import { PNL_LINES, PNL_VIEW, PNL_PERIODS, pctOfRevenue, pnlCellText } from './repvm.ts';
+import { ProfitScreen } from '../ReportScreens.tsx';
+import { PNL_LINES, PNL_VIEW, PNL_PERIODS, pctOfRevenue, pnlCellText } from '../report.viewmodels.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,90)}`))};

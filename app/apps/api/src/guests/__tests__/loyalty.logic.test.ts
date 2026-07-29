@@ -1,6 +1,6 @@
 import { normalizePhoneKz, bonusAccrual, bonusPayable, bonusToExpire,
   walletPay, walletTopup, walletDebt, discountActiveAt, bestDiscount, applyDiscount,
-  nPlusGift, giftFromSum, checkPromoCode, promoDiscount, useSubscription, LoyaltyError } from './loy.ts';
+  nPlusGift, giftFromSum, checkPromoCode, promoDiscount, useSubscription, LoyaltyError } from '../loyalty.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};

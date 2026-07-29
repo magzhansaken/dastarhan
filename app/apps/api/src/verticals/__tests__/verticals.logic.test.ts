@@ -1,6 +1,6 @@
 import { ean13CheckDigit, validateEan13, parseWeightBarcode, weightPrice, makeWeightBarcode,
-  tariffAt, billSession, overlaps, validateAppointment, freeSlots, VerticalError } from './vert.ts';
-import type { Tariff } from './vert.ts';
+  tariffAt, billSession, overlaps, validateAppointment, freeSlots, VerticalError } from '../../../../../packages/shared/src/verticals/verticals.logic.ts';
+import type { Tariff } from '../../../../../packages/shared/src/verticals/verticals.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};

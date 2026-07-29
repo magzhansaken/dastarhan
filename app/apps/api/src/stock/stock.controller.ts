@@ -61,7 +61,7 @@ export class StockController {
       where: { id: { in: rows.map((r) => r.productId) } },
       select: { id: true, name: true, unit: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
 
     return rows.map((r) => ({
       productId: r.productId,
@@ -187,7 +187,7 @@ export class StockController {
       where: { id: { in: doc.lines.map((l) => l.productId) } },
       select: { id: true, name: true, unit: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
 
     const warnings: { product: string; qty: number; unit: string; reason: string }[] = [];
     for (const line of doc.lines) {

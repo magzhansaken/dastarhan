@@ -79,13 +79,26 @@ export function concat(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
+// Перевод строки — самый частый байт в чеке
+const NL = new Uint8Array([0x0a]);
+
+/** Короткий псевдоним кодировщика — им пользуется весь файл ниже. */
+const toCp = toCp866;
+
+/** lineLR возвращает обёрнутые строки — кодируем их с переводами между. */
+function encLines(lines: string[]): Uint8Array {
+  const out: Uint8Array[] = [];
+  lines.forEach((s, i) => { if (i) out.push(NL); out.push(toCp866(s)); });
+  return concat(out);
+}
+
 // ═══════════════ РАСКЛАДКА СТРОК ═══════════════
 
 /** Ширина: 58мм = 32 символа, 80мм = 48 (стандарт Xprinter/Rongta). */
 export type PaperWidth = 32 | 48;
 
 /** «Название слева — сумма справа», перенос длинных названий. */
-export function lineLR(left: string, right: string, width: PaperWidth): string[] {
+export function lineLR(left: string, right: string, width: number): string[] {
   const rw = right.length;
   const lw = width - rw - 1;
   const lines: string[] = [];
@@ -280,7 +293,7 @@ export function buildKitchenTicket(o: {
   }
 
   parts.push(new Uint8Array([0x1b, 0x61, 0x00]));      // влево
-  parts.push(divider(W));
+  parts.push(toCp(divider(W)), NL);
 
   for (const i of o.items) {
     // Количество и название крупно: главное, что нужно повару
@@ -304,7 +317,7 @@ export function buildKitchenTicket(o: {
     parts.push(new Uint8Array([0x0a]));
   }
 
-  parts.push(divider(W));
+  parts.push(toCp(divider(W)), NL);
   parts.push(new Uint8Array([0x0a, 0x0a, 0x0a]));
   parts.push(new Uint8Array([0x1d, 0x56, 0x00]));      // отрез
 
@@ -353,26 +366,26 @@ export function buildPostCheck(o: {
   parts.push(new Uint8Array([0x0a]));
 
   parts.push(new Uint8Array([0x1b, 0x61, 0x00]));
-  parts.push(divider(W));
+  parts.push(toCp(divider(W)), NL);
 
   for (const i of o.items) {
     parts.push(toCp(i.name));
     parts.push(new Uint8Array([0x0a]));
-    parts.push(lineLR(`  ${i.qty} × ${money(i.unitPrice)}`, money(i.qty * i.unitPrice), W));
+    parts.push(encLines(lineLR(`  ${i.qty} × ${money(i.unitPrice)}`, money(i.qty * i.unitPrice), W)));
     parts.push(new Uint8Array([0x0a]));
   }
 
-  parts.push(divider(W));
+  parts.push(toCp(divider(W)), NL);
   if (o.discount > 0) {
-    parts.push(lineLR('Сумма', money(o.subtotal), W));
+    parts.push(encLines(lineLR('Сумма', money(o.subtotal), W)));
     parts.push(new Uint8Array([0x0a]));
-    parts.push(lineLR('Скидка', `-${money(o.discount)}`, W));
+    parts.push(encLines(lineLR('Скидка', `-${money(o.discount)}`, W)));
     parts.push(new Uint8Array([0x0a]));
   }
 
   // Итог двойной высотой: гость смотрит на эту строку первой
   parts.push(new Uint8Array([0x1d, 0x21, 0x01]));
-  parts.push(lineLR('ИТОГО', money(o.total), Math.floor(W / 2)));
+  parts.push(encLines(lineLR('ИТОГО', money(o.total), Math.floor(W / 2))));
   parts.push(new Uint8Array([0x0a]));
   parts.push(new Uint8Array([0x1d, 0x21, 0x00]));
 
@@ -380,15 +393,15 @@ export function buildPostCheck(o: {
     const label = p.kind === 'CASH' ? 'Наличные'
       : p.kind === 'CARD' ? 'Карта'
       : p.kind === 'KASPI_QR' ? 'Kaspi QR' : p.kind;
-    parts.push(lineLR(label, money(p.amount), W));
+    parts.push(encLines(lineLR(label, money(p.amount), W)));
     parts.push(new Uint8Array([0x0a]));
   }
   if (o.change && o.change > 0) {
-    parts.push(lineLR('Сдача', money(o.change), W));
+    parts.push(encLines(lineLR('Сдача', money(o.change), W)));
     parts.push(new Uint8Array([0x0a]));
   }
 
-  parts.push(divider(W));
+  parts.push(toCp(divider(W)), NL);
   parts.push(new Uint8Array([0x1b, 0x61, 0x01]));
 
   // Фискальный номер печатаем, если чек ушёл. Если нет — честно

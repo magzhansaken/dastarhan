@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { VendorShell, TicketsScreen, FeatureMatrix, slaLabel, PRIORITY_RU, STATUS_RU } from './vshell.tsx';
-import type { Ticket } from './ticket.ts';
+import { VendorShell, TicketsScreen, FeatureMatrix, slaLabel, PRIORITY_RU, STATUS_RU } from '../VendorShell.tsx';
+import type { Ticket } from '../../../../packages/shared/src/platform/ticket.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

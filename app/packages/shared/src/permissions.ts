@@ -225,8 +225,12 @@ export const ROLE_PRESETS: Record<string, { name: string; permissions: RolePermi
     name: 'Официант',
     permissions: {
       'order.create': 'allowed', 'order.split': 'allowed',
-      'order.item.remove': 'elevated_pin', 'order.cancel': 'allowed',
-      'order.discount.manual': 'elevated_pin', 'order.refund': 'elevated_pin',
+      // Отмена заказа и возврат официанту закрыты полностью: приняв наличные
+      // и отменив заказ, недобросовестный сотрудник кладёт деньги в карман.
+      // Это делает менеджер. Снять позицию после кухни — можно, но под PIN
+      // старшего: обычный рабочий случай «гость передумал».
+      'order.item.remove': 'elevated_pin', 'order.cancel': 'denied',
+      'order.discount.manual': 'elevated_pin', 'order.refund': 'denied',
       'crm.customer.view': 'allowed',
     },
   },

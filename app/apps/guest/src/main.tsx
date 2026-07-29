@@ -40,7 +40,9 @@ function App() {
         fetch(`${API}/guest/table-order`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tableToken: token, ...payload }),
+          // payload из buildTableOrder уже содержит tableToken —
+          // спред идёт первым, чтобы токен из адресной строки был решающим
+          body: JSON.stringify({ ...payload, tableToken: token }),
         }).then((r) => {
           if (r.ok) alert('Заказ отправлен официанту');
           else alert('Не удалось отправить. Позовите официанта.');

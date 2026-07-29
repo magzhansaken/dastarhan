@@ -6,7 +6,7 @@ import {
   SupplyLineVm, supplyTotals, supplyErrors, onboardingSteps, onboardingProgress,
   foodcostLevel, FOODCOST_LEVEL, stockForecast, monthlyMargin,
 } from '../viewmodels';
-import { CostContext } from '../../../../packages/shared/src/menu/cost.service';
+import { CostContext } from '@dastarhan/shared/menu/cost.service';
 
 const fmt = (t: number) => `${Math.trunc(t / 100).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;
 

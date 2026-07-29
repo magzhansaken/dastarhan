@@ -39,7 +39,7 @@ export class FinanceController {
       this.prisma.finCategory.findMany({ where: { accountId } }),
     ]);
 
-    const catById = new Map(categories.map((c) => [c.id, c]));
+    const catById = new Map(categories.map((c) => [c.id, c] as const));
     const revenue = orders.reduce((s, o) => s + o.total, 0);
 
     // Расходы группируем по статьям — владельцу нужно видеть,
@@ -153,14 +153,35 @@ export class FinanceController {
     const fromDate = from ? new Date(from) : new Date(Date.now() - 30 * 86400_000);
     const toDate = to ? new Date(to) : new Date();
 
-    const txs = await this.prisma.finTransaction.findMany({
-      where: { accountId: req.user.acc, at: { gte: fromDate, lte: toDate } },
-      select: { amount: true, at: true },
-    });
+    // По схеме amount ВСЕГДА > 0: направление задаёт kind категории.
+    // Фильтровать по знаку суммы нельзя — «ушло» всегда было бы нулём.
+    const [txs, cats] = await Promise.all([
+      this.prisma.finTransaction.findMany({
+        where: { accountId: req.user.acc, at: { gte: fromDate, lte: toDate } },
+        select: { amount: true, categoryId: true },
+      }),
+      this.prisma.finCategory.findMany({
+        where: { accountId: req.user.acc },
+        select: { id: true, name: true, kind: true, inPnl: true },
+      }),
+    ]);
+    const catById = new Map(cats.map((c) => [c.id, c] as const));
 
-    const income = txs.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
-    const outcome = txs.filter((t) => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0);
+    let inflow = 0;
+    let outflow = 0;
+    const perCat = new Map<string, { name: string; amount: number; direction: 'in' | 'out' }>();
+    for (const t of txs) {
+      const cat = catById.get(t.categoryId);
+      // Переводы между счетами и неизвестные категории — не движение денег
+      if (!cat || !cat.inPnl || cat.kind === 'TRANSFER') continue;
+      const dir: 'in' | 'out' = cat.kind === 'INCOME' ? 'in' : 'out';
+      if (dir === 'in') inflow += t.amount; else outflow += t.amount;
+      const row = perCat.get(cat.id) ?? { name: cat.name, amount: 0, direction: dir };
+      row.amount += t.amount;
+      perCat.set(cat.id, row);
+    }
 
-    return { income, outcome, balance: income - outcome, count: txs.length };
+    const byCategory = [...perCat.values()].sort((a, b) => b.amount - a.amount);
+    return { inflow, outflow, balance: inflow - outflow, byCategory, count: txs.length };
   }
 }

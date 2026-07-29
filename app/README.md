@@ -23,7 +23,7 @@ packages/
 
 ## Запуск (dev)
 ```
-docker compose up -d   # postgres + redis
+docker compose -f docker-compose.dev.yml up -d   # postgres:5433 + redis:6380
 pnpm install
 pnpm -C packages/db prisma migrate dev
 pnpm -C apps/api start:dev

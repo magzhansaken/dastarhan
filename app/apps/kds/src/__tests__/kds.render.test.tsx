@@ -1,8 +1,8 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { urgency, kdsTickets, batchSummary, kitchenSpeed, pushRecall, KdsScreen, TARGET_MIN,
-  KT, kt, itemStatusLabel } from './kds.tsx';
-import type { KdsTicketIn } from './kds.tsx';
+  KT, kt, itemStatusLabel } from '../KdsScreen.tsx';
+import type { KdsTicketIn } from '../KdsScreen.tsx';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

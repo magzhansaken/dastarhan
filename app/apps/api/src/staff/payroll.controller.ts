@@ -59,7 +59,7 @@ export class PayrollController {
       where: { id: { in: rules.map((r) => r.userId) } },
       select: { id: true, fullName: true },
     });
-    const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
+    const nameBy = new Map(users.map((u) => [u.id, u.fullName] as const));
 
     const rows: any[] = [];
     for (const rule of rules) {

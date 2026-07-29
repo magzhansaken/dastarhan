@@ -108,6 +108,7 @@ export function ShiftOpenScreen(props: {
   lang?: Lang;
   onLang?: (l: Lang) => void;
   onOpen: (floatAmount: Money) => void;
+  onBack?: () => void;                // выйти и сменить кассира, не открывая смену
 }) {
   const lang = props.lang ?? 'ru';
   const [floatTenge, setFloat] = useState(40000);
@@ -157,6 +158,12 @@ export function ShiftOpenScreen(props: {
       <button className="btn btn-ok cr-big" onClick={() => props.onOpen(floatTenge * 100)}>
         {st('openBtn', lang)} · {formatMoney(floatTenge * 100)}
       </button>
+
+      {props.onBack && (
+        <button className="btn" onClick={props.onBack}>
+          {lang === 'kk' ? 'Шығу' : 'Выйти'}
+        </button>
+      )}
 
       {props.lastCollection && (
         <section className="shift-prev">

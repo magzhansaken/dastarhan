@@ -123,11 +123,11 @@ export class MenuController {
       }),
     ]);
 
-    const nameBy = new Map(products.map((p) => [p.id, p]));
+    const nameBy = new Map(products.map((p) => [p.id, p] as const));
     // Себестоимость по средней складской цене: это реальные деньги,
     // а не прайс поставщика, который может быть месячной давности
-    const costBy = new Map(balances.map((b) => [b.productId, b.avgCost]));
-    const qtyBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
+    const costBy = new Map(balances.map((b) => [b.productId, b.avgCost] as const));
+    const qtyBy = new Map(balances.map((b) => [b.productId, Number(b.qty)] as const));
 
     let cost = 0;
     let minPortions = Infinity;
@@ -262,15 +262,15 @@ export class MenuController {
       this.prisma.stopListEntry.findMany({ where: { locationId } }),
     ]);
 
-    const qtyBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
-    const cardBy = new Map(cards.map((c) => [c.productId, c]));
-    const stopBy = new Map(manual.map((s) => [s.productId, s]));
+    const qtyBy = new Map(balances.map((b) => [b.productId, Number(b.qty)] as const));
+    const cardBy = new Map(cards.map((c) => [c.productId, c] as const));
+    const stopBy = new Map(manual.map((s) => [s.productId, s] as const));
 
     const componentNames = await this.prisma.product.findMany({
       where: { id: { in: cards.flatMap((c) => c.lines.map((l) => l.componentId)) } },
       select: { id: true, name: true },
     });
-    const compName = new Map(componentNames.map((p) => [p.id, p.name]));
+    const compName = new Map(componentNames.map((p) => [p.id, p.name] as const));
 
     const rows = products.map((p) => {
       const stop = stopBy.get(p.id);

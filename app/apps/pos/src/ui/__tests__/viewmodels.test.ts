@@ -1,6 +1,6 @@
 import { formatMoney, pinPress, pinReady, filterCatalog, tileBadge,
-  quickTenderOptions, paymentChange, paymentValid, tenderPress, syncStatusLabel } from './vm.ts';
-import type { PinVm, CatalogItem, PaymentVm } from './vm.ts';
+  quickTenderOptions, paymentChange, paymentValid, tenderPress, syncStatusLabel } from '../viewmodels.ts';
+import type { PinVm, CatalogItem, PaymentVm } from '../viewmodels.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};
@@ -36,11 +36,13 @@ eq('бейдж: остаток', tileBadge(cat[2]), {kind:'low', text:'3'});
 eq('бейдж: чисто', tileBadge(cat[0]), {kind:null});
 
 // умные купюры: чек 3 700 тг
-eq('купюры к 3700', quickTenderOptions(370000), [370000, 500000, 1000000, 2000000]);
-// чек 12 500 — точная, 20000, дальше кратные 10 000
-eq('купюры к 12500 полностью', quickTenderOptions(1250000), [1250000, 2000000, 3000000, 4000000]);
+// Живой алгоритм: сначала «бытовые» округления вверх (гость на чек 3 700
+// протянет 4 000 двумя двухтысячными, а не десятку), затем купюры КЗ.
+eq('купюры к 3700', quickTenderOptions(370000), [370000, 400000, 500000, 1000000]);
+// чек 12 500 — точная, округление до тысячи, купюра 20 000, дальше кратные 10 000
+eq('купюры к 12500 полностью', quickTenderOptions(1250000), [1250000, 1300000, 2000000, 3000000]);
 const q2 = quickTenderOptions(1250000);
-eq('к 12500: без сдачи + 20000', [q2[0], q2[1]], [1250000, 2000000]);
+eq('к 12500: без сдачи + округление', [q2[0], q2[1]], [1250000, 1300000]);
 eq('4 кнопки всегда', q2.length, 4);
 eq('без дублей', new Set(q2).size, 4);
 // чек 45 000 — больше самой крупной купюры

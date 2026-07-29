@@ -51,7 +51,7 @@ export class BanquetController {
       where: { id: { in: dto.items.map((i) => i.productId) } },
       select: { id: true, name: true, basePrice: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
 
     const subtotal = dto.items.reduce((s, i) => {
       const p = byId.get(i.productId);
@@ -196,13 +196,13 @@ export class BanquetController {
     const balances = wh ? await this.prisma.stockBalance.findMany({
       where: { warehouseId: wh.id, productId: { in: [...need.keys()] } },
     }) : [];
-    const haveBy = new Map(balances.map((x) => [x.productId, Number(x.qty)]));
+    const haveBy = new Map(balances.map((x) => [x.productId, Number(x.qty)] as const));
 
     const products = await this.prisma.product.findMany({
       where: { id: { in: [...need.keys()] } },
       select: { id: true, name: true, unit: true },
     });
-    const prodBy = new Map(products.map((p) => [p.id, p]));
+    const prodBy = new Map(products.map((p) => [p.id, p] as const));
 
     const rows = [...need.entries()].map(([productId, qty]) => {
       const have = haveBy.get(productId) ?? 0;

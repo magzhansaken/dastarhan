@@ -57,7 +57,7 @@ export class ShelfLifeController {
       where: { id: { in: batches.map((b) => b.productId) } },
       select: { id: true, name: true, unit: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
 
     const now = Date.now();
     type Row = {

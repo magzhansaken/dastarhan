@@ -47,7 +47,7 @@ export class HallController {
       where: { tableId: { in: tableIds }, status: 'OPEN' },
       select: { id: true, tableId: true, number: true, total: true, openedAt: true, guestsCount: true },
     });
-    const byTable = new Map(open.map((o) => [o.tableId!, o]));
+    const byTable = new Map(open.map((o) => [o.tableId!, o] as const));
     const now = Date.now();
 
     return halls.map((h) => ({

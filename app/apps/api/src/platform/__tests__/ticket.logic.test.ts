@@ -1,7 +1,7 @@
 import { SLA, INCIDENT_SLA, reactionDueAt, resolveDueAt, overdueReaction, overdueResolve,
   minutesToDeadline, slaTone, sortQueue, shouldEscalate, escalate, normalizeSubject,
-  subjectSimilarity, detectMassIncident, linkToIncident, supportStats } from './ticket.ts';
-import type { Ticket } from './ticket.ts';
+  subjectSimilarity, detectMassIncident, linkToIncident, supportStats } from '../../../../../packages/shared/src/platform/ticket.logic.ts';
+import type { Ticket } from '../../../../../packages/shared/src/platform/ticket.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

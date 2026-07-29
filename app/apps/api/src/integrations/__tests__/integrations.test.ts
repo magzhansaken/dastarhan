@@ -1,8 +1,8 @@
-import { botStep, START_STATE, cartTotal } from './tg.ts';
-import type { ChatState, MenuData } from './tg.ts';
+import { botStep, START_STATE, cartTotal } from '../telegram.bot.ts';
+import type { ChatState, MenuData } from '../telegram.bot.ts';
 import { kaspiQrCreate, kaspiQrAdvance, kaspiQrPollDelay, ReKassaDriver,
-  mapWoltOrder, mapMenuToWolt, stopListToWolt } from './kzint.ts';
-import type { FiscalRequest } from './pay.ts';
+  mapWoltOrder, mapMenuToWolt, stopListToWolt } from '../kz.integrations.ts';
+import type { FiscalRequest } from '../../payments/payments.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,120)} want ${JSON.stringify(w).slice(0,120)}`))};

@@ -15,8 +15,8 @@
 //  4) «Не вручено» с причиной → RETURNED (звонил — не отвечает) — честный
 //     возврат вместо зависшего заказа
 import React, { useState } from 'react';
-import { courierDebt, markDelivered } from '../../../packages/shared/src/delivery/delivery.logic';
-import type { Trip } from '../../../packages/shared/src/delivery/delivery.logic';
+import { courierDebt, markDelivered } from '@dastarhan/shared/delivery/delivery.logic';
+import type { Trip } from '@dastarhan/shared/delivery/delivery.logic';
 
 export type Money = number;
 const fmt = (t: Money) => `${Math.trunc(t / 100).toLocaleString('ru-RU').replace(/\u00A0/g, ' ')} ₸`;

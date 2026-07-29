@@ -7,6 +7,9 @@ import { Dashboard } from './screens/BackofficeScreens';
 import { OnboardingWizard, ONB_STEPS } from './onboarding/OnboardingWizard';
 import { ChecksScreen, AbcScreen, SalaryScreen, CashFlowScreen } from './reports/ReportScreens';
 import { HallEditor } from './screens/HallEditor';
+import { StaffList } from './staff/StaffScreens';
+import { ReservationsScreen } from './reservations/Reservations';
+import type { Reservation } from './reservations/Reservations';
 
 const API = '/api/v1';
 const TOKEN = 'dastarhan.office.token';
@@ -148,6 +151,117 @@ function ProfitView({ token }: { token: string }) {
   );
 }
 
+// ═══════════════ ПЕРСОНАЛ ═══════════════
+// Экран был готов, но не подключён к навигации. Список — с /staff,
+// последний вход в системе пока не хранится, поэтому честное «ни разу».
+
+function StaffView({ token }: { token: string }) {
+  const [rows, setRows] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    fetch(`${API}/staff`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(setRows)
+      .catch(() => setRows([]));
+  }, [token]);
+
+  if (!rows) return <div className="label-mono">Загружаем сотрудников…</div>;
+
+  return (
+    <StaffList now={new Date()}
+      rows={rows.map((u: any) => ({
+        userId: u.id,
+        name: u.fullName ?? u.email ?? '—',
+        phone: u.phone ?? '',
+        roleName: u.isOwner ? 'Владелец' : (u.roles?.[0]?.roleName ?? 'Без роли'),
+        points: (u.roles ?? []).map((r: any, i: number) => ({
+          id: String(i), name: r.locationName, roleName: r.roleName,
+        })),
+        active: !!u.isActive,
+        lastLoginAt: null,
+      }))}
+      onOpen={() => {}}
+      onAdd={() => alert('Добавление сотрудника — в мастере настройки, шаг «Команда»')}
+    />
+  );
+}
+
+// ═══════════════ БРОНИ ═══════════════
+// Шахматка столы × часы. Столы — с карты зала, брони — за выбранный день.
+
+function ReservationsView({ token }: { token: string }) {
+  const locationId = localStorage.getItem('dastarhan.locationId') ?? '';
+  const [tables, setTables] = useState<{ id: string; name: string; seats: number }[]>([]);
+  const [rows, setRows] = useState<Reservation[] | null>(null);
+  const [tick, setTick] = useState(0);
+
+  const load = () => {
+    Promise.all([
+      fetch(`${API}/hall/map?locationId=${locationId}`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => (r.ok ? r.json() : []))
+        .catch(() => []),
+      fetch(`${API}/reservations?locationId=${locationId}`, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => (r.ok ? r.json() : { rows: [] }))
+        .catch(() => ({ rows: [] })),
+    ]).then(([halls, res]) => {
+      const ts: { id: string; name: string; seats: number }[] = [];
+      for (const h of halls ?? []) for (const t of h.tables ?? []) {
+        ts.push({ id: t.tableId, name: t.name, seats: t.seats });
+      }
+      setTables(ts);
+      // Шахматке нужен tableId: брони без стола показываем на первом свободном
+      setRows((res.rows ?? []).map((r: any) => ({
+        id: r.id,
+        tableId: r.tableId ?? ts[0]?.id ?? '',
+        startAt: new Date(r.startAt),
+        endAt: new Date(new Date(r.startAt).getTime() + (r.durationMin ?? 120) * 60000),
+        guestPhone: r.phone ?? '',
+        guestName: r.guestName ?? undefined,
+        persons: r.guests ?? 2,
+        status: r.status,
+        depositAmount: r.prepaid || undefined,
+        note: r.comment ?? undefined,
+      })));
+    });
+  };
+
+  useEffect(load, [token, tick]);
+
+  const patch = (id: string, action: string) =>
+    fetch(`${API}/reservations/${id}/${action}`, {
+      method: 'PATCH', headers: { Authorization: `Bearer ${token}` },
+    }).then(() => setTick((t) => t + 1)).catch(() => null);
+
+  if (!rows) return <div className="label-mono">Загружаем брони…</div>;
+  if (!tables.length) return (
+    <div className="state-empty">
+      <b>Сначала расставьте столы</b>
+      <span>Шахматка броней строится по карте зала</span>
+    </div>
+  );
+
+  return (
+    <ReservationsScreen
+      day={new Date()} now={new Date()}
+      tables={tables} reservations={rows}
+      onSeat={(id) => patch(id, 'seat')}
+      onCancel={(id) => patch(id, 'cancel')}
+      onNew={(tableId, hour) => {
+        const guestName = prompt('Имя гостя?');
+        if (!guestName) return;
+        const phone = prompt('Телефон?') ?? '';
+        const guests = Number(prompt('Сколько гостей?', '2')) || 2;
+        const startAt = new Date(); startAt.setHours(hour, 0, 0, 0);
+        fetch(`${API}/reservations`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ locationId, tableId, guestName, phone, guests, startAt: startAt.toISOString() }),
+        }).then(() => setTick((t) => t + 1)).catch(() => null);
+      }}
+    />
+  );
+}
+
 // ═══════════════ ОТЧЁТЫ ═══════════════
 // Каждый отчёт отвечает на один вопрос владельца.
 // Данные грузятся при открытии вкладки, а не все сразу:
@@ -160,7 +274,9 @@ function Report({ token, path, render }: {
   const [err, setErr] = useState(false);
 
   useEffect(() => {
-    fetch(`${API}/reports/${path}`, { headers: { Authorization: `Bearer ${token}` } })
+    // Путь с ведущим «/» — абсолютный от корня API (отчёты живут не только в /reports)
+    const url = path.startsWith('/') ? `${API}${path}` : `${API}/reports/${path}`;
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => d !== null ? setRows(d) : setErr(true))
       .catch(() => setErr(true));
@@ -237,6 +353,8 @@ const TABS = [
   { id: 'abc', title: 'Что кормит бизнес' },
   { id: 'money', title: 'Куда ушли деньги' },
   { id: 'salary', title: 'Зарплата' },
+  { id: 'staff', title: 'Сотрудники' },
+  { id: 'resv', title: 'Брони' },
   { id: 'hall', title: 'Карта зала' },
   { id: 'stock', title: 'Склад' },
   { id: 'profit', title: 'Прибыль' },
@@ -297,13 +415,18 @@ function Office({ token, onOut }: { token: string; onOut: () => void }) {
             render={(rows) => <AbcScreen rows={rows} periodLabel="За 30 дней" positionsCount={rows.length} />} />
         )}
         {tab === 'money' && (
-          <Report token={token} path="../finance/cashflow"
-            render={(d) => <CashFlowScreen data={d} periodLabel="За 30 дней" />} />
+          <Report token={token} path="/finance/cashflow"
+            render={(d) => (
+              <CashFlowScreen inflow={d.inflow ?? 0} outflow={d.outflow ?? 0}
+                byCategory={d.byCategory ?? []} />
+            )} />
         )}
         {tab === 'salary' && (
           <Report token={token} path="payroll"
             render={(rows) => <SalaryScreen rows={rows} periodLabel="За месяц" />} />
         )}
+        {tab === 'staff' && <StaffView token={token} />}
+        {tab === 'resv' && <ReservationsView token={token} />}
         {tab === 'hall' && (
           <HallEditor token={token}
             locationId={localStorage.getItem('dastarhan.locationId') ?? ''} />

@@ -1,5 +1,5 @@
-import { toCp866, CMD, concat, lineLR, divider, center, fmtT, buildReceipt, buildPrecheck } from './esc.ts';
-import type { ReceiptData } from './esc.ts';
+import { toCp866, CMD, concat, lineLR, divider, center, fmtT, buildReceipt, buildPrecheck } from '../escpos.ts';
+import type { ReceiptData } from '../escpos.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)} want ${JSON.stringify(w).slice(0,110)}`))};

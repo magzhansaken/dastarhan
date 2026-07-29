@@ -47,13 +47,13 @@ export class TransferController {
         productId: { in: dto.lines.map((l) => l.productId) },
       },
     });
-    const balBy = new Map(balances.map((b) => [b.productId, b]));
+    const balBy = new Map(balances.map((b) => [b.productId, b] as const));
 
     const names = await this.prisma.product.findMany({
       where: { id: { in: dto.lines.map((l) => l.productId) } },
       select: { id: true, name: true },
     });
-    const nameBy = new Map(names.map((n) => [n.id, n.name]));
+    const nameBy = new Map(names.map((n) => [n.id, n.name] as const));
 
     // Проверяем всё до списания: отправить половину и застрять
     // на второй позиции хуже, чем не начинать
@@ -151,7 +151,7 @@ export class TransferController {
       where: { id: { in: rows.flatMap((r) => r.lines.map((l) => l.productId)) } },
       select: { id: true, name: true, unit: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
 
     const now = Date.now();
     return rows.map((t) => {
@@ -201,7 +201,7 @@ export class TransferController {
       where: { id: { in: t.lines.map((l) => l.productId) } },
       select: { id: true, name: true },
     });
-    const nameBy = new Map(names.map((n) => [n.id, n.name]));
+    const nameBy = new Map(names.map((n) => [n.id, n.name] as const));
 
     const gaps: { name: string; sent: number; got: number; loss: number }[] = [];
     let full = true;
@@ -314,7 +314,7 @@ export class TransferController {
       where: { locationId: { in: locations.map((l) => l.id) } },
       select: { id: true, name: true, locationId: true },
     });
-    const whBy = new Map(warehouses.map((w) => [w.id, w]));
+    const whBy = new Map(warehouses.map((w) => [w.id, w] as const));
 
     const pairs = new Map<string, { from: string; to: string; count: number; cost: number }>();
     for (const t of rows) {

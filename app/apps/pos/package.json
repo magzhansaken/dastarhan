@@ -14,7 +14,8 @@
     "react-dom": "^18.3.1",
     "@tauri-apps/api": "^2.1.1",
     "@capacitor/core": "^6.2.0",
-    "@capacitor/android": "^6.2.0"
+    "@capacitor/android": "^6.2.0",
+    "@dastarhan/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^18.3.17",

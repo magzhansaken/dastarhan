@@ -53,7 +53,7 @@ export class ButcheringController {
       where: { id: { in: ids } },
       select: { id: true, name: true, unit: true },
     });
-    const nameBy = new Map(products.map((p) => [p.id, p]));
+    const nameBy = new Map(products.map((p) => [p.id, p] as const));
 
     // Вес коэффициента × количество — так части с большим выходом
     // получают пропорционально больше себестоимости
@@ -289,7 +289,7 @@ export class ButcheringController {
       }),
     ]);
 
-    const nameBy = new Map(products.map((p) => [p.id, p]));
+    const nameBy = new Map(products.map((p) => [p.id, p] as const));
     const fromUnit = nameBy.get(dto.fromProductId)?.unit;
     const toUnit = nameBy.get(dto.toProductId)?.unit;
 

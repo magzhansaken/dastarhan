@@ -122,19 +122,19 @@ export class SupplyController {
         productId: { in: limits.map((l) => l.productId) },
       },
     });
-    const balBy = new Map(balances.map((b) => [b.productId, b]));
+    const balBy = new Map(balances.map((b) => [b.productId, b] as const));
 
     const products = await this.prisma.product.findMany({
       where: { id: { in: limits.map((l) => l.productId) } },
       select: { id: true, name: true, unit: true },
     });
-    const prodBy = new Map(products.map((p) => [p.id, p]));
+    const prodBy = new Map(products.map((p) => [p.id, p] as const));
 
     const suppliers = await this.prisma.supplier.findMany({
       where: { id: { in: limits.map((l) => l.supplierId).filter(Boolean) as string[] } },
       select: { id: true, name: true, phone: true },
     });
-    const supBy = new Map(suppliers.map((s) => [s.id, s]));
+    const supBy = new Map(suppliers.map((s) => [s.id, s] as const));
 
     const rows: any[] = [];
     for (const l of limits) {
@@ -278,7 +278,7 @@ export class SupplyController {
       where: { id: { in: r.lines.map((l) => l.productId) } },
       select: { id: true, name: true, unit: true },
     });
-    const nameBy = new Map(products.map((p) => [p.id, p]));
+    const nameBy = new Map(products.map((p) => [p.id, p] as const));
 
     // Готовый текст для WhatsApp: кладовщик копирует и отправляет,
     // не переписывая позиции руками
@@ -491,9 +491,9 @@ export class SupplyController {
       }),
     ]);
 
-    const balBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
-    const prodBy = new Map(products.map((p) => [p.id, p]));
-    const supBy = new Map(limits.map((l) => [l.productId, l.supplierId]));
+    const balBy = new Map(balances.map((b) => [b.productId, Number(b.qty)] as const));
+    const prodBy = new Map(products.map((p) => [p.id, p] as const));
+    const supBy = new Map(limits.map((l) => [l.productId, l.supplierId] as const));
 
     const rows: any[] = [];
     for (const [productId, v] of byProduct) {
@@ -560,7 +560,7 @@ export class SupplyController {
       where: { id: { in: req.lines.map((l) => l.productId) } },
       select: { id: true, name: true, unit: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
 
     // Прошлые цены: кладовщик должен заметить подорожание
     // в момент приёмки, а не через месяц в отчёте
@@ -615,12 +615,12 @@ export class SupplyController {
     });
     if (!request) throw new NotFoundException({ code: 'REQUEST_NOT_FOUND' });
 
-    const orderedBy = new Map(request.lines.map((l) => [l.productId, Number(l.qty)]));
+    const orderedBy = new Map(request.lines.map((l) => [l.productId, Number(l.qty)] as const));
     const products = await this.prisma.product.findMany({
       where: { id: { in: dto.lines.map((l) => l.productId) } },
       select: { id: true, name: true },
     });
-    const nameBy = new Map(products.map((p) => [p.id, p.name]));
+    const nameBy = new Map(products.map((p) => [p.id, p.name] as const));
 
     const discrepancies: {
       kind: 'short' | 'over' | 'extra' | 'price_up';

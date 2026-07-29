@@ -5,7 +5,18 @@
 //
 // Хранилище: SQLite (Tauri/Capacitor плагин) с fallback на IndexedDB в dev.
 
-import { ulid } from 'ulid';
+// ULID без внешней зависимости: 48 бит времени + 80 бит случайности
+// в Crockford base32. Сортируемость по времени сохраняется — этого
+// достаточно для порядка событий в журнале.
+const B32 = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+function ulid(now = Date.now()): string {
+  let t = now, time = '';
+  for (let i = 0; i < 10; i++) { time = B32[t % 32] + time; t = Math.floor(t / 32); }
+  const rnd = crypto.getRandomValues(new Uint8Array(16));
+  let rand = '';
+  for (let i = 0; i < 16; i++) rand += B32[rnd[i] % 32];
+  return time + rand;
+}
 
 export interface LocalEvent {
   eventId: string;

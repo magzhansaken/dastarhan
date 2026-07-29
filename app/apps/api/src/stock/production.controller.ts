@@ -82,8 +82,8 @@ export class ProductionController {
         select: { id: true, name: true, unit: true, shelfLifeHours: true },
       }),
     ]);
-    const haveBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
-    const prodBy = new Map(products.map((p) => [p.id, p]));
+    const haveBy = new Map(balances.map((b) => [b.productId, Number(b.qty)] as const));
+    const prodBy = new Map(products.map((p) => [p.id, p] as const));
 
     const rows: {
       productId: string; name: string; unit: string | null;
@@ -156,13 +156,13 @@ export class ProductionController {
         productId: { in: card.lines.map((l) => l.componentId) },
       },
     });
-    const balBy = new Map(balances.map((b) => [b.productId, b]));
+    const balBy = new Map(balances.map((b) => [b.productId, b] as const));
 
     const names = await this.prisma.product.findMany({
       where: { id: { in: card.lines.map((l) => l.componentId) } },
       select: { id: true, name: true },
     });
-    const nameBy = new Map(names.map((n) => [n.id, n.name]));
+    const nameBy = new Map(names.map((n) => [n.id, n.name] as const));
 
     // Проверяем всё сырьё до списания: начать готовить и на
     // середине обнаружить нехватку — хуже, чем не начать
@@ -364,7 +364,7 @@ export class ProductionController {
       where: { id: { in: [...byProduct.keys()] } },
       select: { id: true, name: true, unit: true },
     });
-    const nameBy = new Map(names.map((n) => [n.id, n]));
+    const nameBy = new Map(names.map((n) => [n.id, n] as const));
 
     return {
       periodDays: Number(days),

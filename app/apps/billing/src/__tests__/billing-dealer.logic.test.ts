@@ -1,10 +1,10 @@
 import { PLANS, planByKey, billingBreakdown, addLocationCost, planChange,
-  invoiceStatusLabel, closingDocs, billingState, whatWorks, canRequestDeferral } from './bill.ts';
-import type { Invoice, LocationBilling } from './bill.ts';
+  invoiceStatusLabel, closingDocs, billingState, whatWorks, canRequestDeferral } from '../../../../packages/shared/src/platform/billing.logic.ts';
+import type { Invoice, LocationBilling } from '../../../../packages/shared/src/platform/billing.logic.ts';
 import { dealerPortfolio, clientCommission, clientAction, commissionAtRisk,
   nextPayoutDate, payoutForecast, paidTotal, commissionGrowthPct,
-  demoStandState, demoConversionRate, accreditationSteps, accreditationProgress } from './dealer.ts';
-import type { DealerClient, MonthlyAccrual, DemoStand } from './dealer.ts';
+  demoStandState, demoConversionRate, accreditationSteps, accreditationProgress } from '../../../../packages/shared/src/platform/dealer.logic.ts';
+import type { DealerClient, MonthlyAccrual, DemoStand } from '../../../../packages/shared/src/platform/dealer.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,120)} want ${JSON.stringify(w).slice(0,120)}`))};

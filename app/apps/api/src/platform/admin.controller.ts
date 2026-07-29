@@ -22,8 +22,8 @@ export class AdminController {
 
     const subs = await this.prisma.subscription.findMany();
     const plans = await this.prisma.plan.findMany();
-    const planById = new Map(plans.map((p) => [p.id, p]));
-    const subByAccount = new Map(subs.map((s) => [s.accountId, s]));
+    const planById = new Map(plans.map((p) => [p.id, p] as const));
+    const subByAccount = new Map(subs.map((s) => [s.accountId, s] as const));
 
     // Типы задаём явно: пустой литерал даёт never[], и push падает
     const metrics: {
@@ -116,8 +116,8 @@ export class AdminController {
       where: { accountId: { in: accounts.map((a) => a.id) } },
     });
     const plans = await this.prisma.plan.findMany();
-    const planById = new Map(plans.map((p) => [p.id, p]));
-    const subBy = new Map(subs.map((s) => [s.accountId, s]));
+    const planById = new Map(plans.map((p) => [p.id, p] as const));
+    const subBy = new Map(subs.map((s) => [s.accountId, s] as const));
 
     const rows: any[] = [];
     for (const a of accounts) {
@@ -281,8 +281,8 @@ export class AdminController {
     const accounts = await this.prisma.account.findMany({ take: 200 });
     const subs = await this.prisma.subscription.findMany();
     const plans = await this.prisma.plan.findMany();
-    const planById = new Map(plans.map((p) => [p.id, p]));
-    const subBy = new Map(subs.map((s) => [s.accountId, s]));
+    const planById = new Map(plans.map((p) => [p.id, p] as const));
+    const subBy = new Map(subs.map((s) => [s.accountId, s] as const));
 
     const now = Date.now();
     const week = new Date(now - 7 * 86400_000);
@@ -386,7 +386,7 @@ export class AdminController {
       where: { id: { in: rows.map((r) => r.accountId).filter(Boolean) as string[] } },
       select: { id: true, name: true },
     });
-    const nameBy = new Map(accounts.map((a) => [a.id, a.name]));
+    const nameBy = new Map(accounts.map((a) => [a.id, a.name] as const));
     const now = Date.now();
 
     return {

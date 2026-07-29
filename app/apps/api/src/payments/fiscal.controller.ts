@@ -68,7 +68,7 @@ export class FiscalController {
       where: { id: { in: [...new Set(payments.map((p) => p.orderId))] } },
       select: { id: true, number: true, status: true, total: true },
     });
-    const orderBy = new Map(orders.map((o) => [o.id, o]));
+    const orderBy = new Map(orders.map((o) => [o.id, o] as const));
 
     const captured = payments.filter((p) => p.status === 'CAPTURED');
     const systemTotal = captured.reduce((s, p) => s + p.amount, 0);

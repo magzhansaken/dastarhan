@@ -1,5 +1,5 @@
 import { normalizeItemName, matchScore, matchProduct, validateDraftSupply,
-  categorizeTx, KZ_MERCHANT_RULES, detectReportKind, parsePeriod, foodcostAlerts } from './ai.ts';
+  categorizeTx, KZ_MERCHANT_RULES, detectReportKind, parsePeriod, foodcostAlerts } from '../ai.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};

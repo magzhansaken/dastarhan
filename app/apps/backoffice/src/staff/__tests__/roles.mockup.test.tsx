@@ -1,8 +1,8 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { RoleEditor, StaffList } from './staff.tsx';
+import { RoleEditor, StaffList } from '../StaffScreens.tsx';
 import { PERMISSIONS, PERMISSION_GROUPS, PERMISSION_STATE_LABELS, PERMISSION_HINTS,
-  ROLE_PRESETS, permissionsSummary, diffFromPreset } from './perm.ts';
+  ROLE_PRESETS, permissionsSummary, diffFromPreset } from '../../../../../packages/shared/src/permissions.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,90)}`))};

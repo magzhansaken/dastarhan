@@ -2,9 +2,9 @@ import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { platformDashboard, healthScore, rescueQueue, nextInvoice, invoiceStatusAt,
   payFromBalance, annualOffer, dunningPlan, dueDunningSteps, issueSos, sosActive,
-  startImpersonation, dealerPayout, SOS_REASONS, SosError } from './admvm.ts';
-import type { AccountRow, Invoice, SosCode, DealerRow } from './admvm.ts';
-import { PlatformDashboard, AccountsScreen, AccountCard, DealersScreen, DunningScreen } from './admscreens.tsx';
+  startImpersonation, dealerPayout, SOS_REASONS, SosError } from '../platform.viewmodels.ts';
+import type { AccountRow, Invoice, SosCode, DealerRow } from '../platform.viewmodels.ts';
+import { PlatformDashboard, AccountsScreen, AccountCard, DealersScreen, DunningScreen } from '../AdminScreens.tsx';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,120)}`))};

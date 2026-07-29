@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { BILL_T, PLAN_FEATURES, ordinalLocation, invoiceStatusLabel } from './billing.tsx';
-import { DEALER_T, DEALER_MATERIALS, clientRiskNote } from './dealer.tsx';
+import { BILL_T, PLAN_FEATURES, ordinalLocation, invoiceStatusLabel } from '../BillingScreens.tsx';
+import { DEALER_T, DEALER_MATERIALS, clientRiskNote } from '../../../dealer/src/DealerScreens.tsx';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,90)}`))};

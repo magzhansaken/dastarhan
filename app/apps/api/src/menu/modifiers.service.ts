@@ -26,7 +26,7 @@ export function applyDefaults(groups: GroupDef[]): Selection[] {
 }
 
 export function validateSelection(groups: GroupDef[], sel: Selection[]): void {
-  const byId = new Map(sel.map((s) => [s.groupId, s.optionIds]));
+  const byId = new Map(sel.map((s) => [s.groupId, s.optionIds] as const));
   for (const g of groups) {
     const chosen = byId.get(g.id) ?? [];
     const valid = new Set(g.options.map((o) => o.id));

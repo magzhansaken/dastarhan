@@ -96,7 +96,7 @@ export class DealerController {
       where: { id: { in: subs.map((s) => s.accountId) } },
       select: { id: true, name: true, createdAt: true },
     });
-    const nameBy = new Map(accounts.map((a) => [a.id, a]));
+    const nameBy = new Map(accounts.map((a) => [a.id, a] as const));
     const now = Date.now();
 
     const rows: {

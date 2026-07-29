@@ -69,7 +69,7 @@ export class NotifyController {
     const subs = await this.prisma.notifySubscription.findMany({
       where: { userId: req.user.sub },
     });
-    const byKind = new Map(subs.map((s) => [s.kind, s]));
+    const byKind = new Map(subs.map((s) => [s.kind, s] as const));
 
     return {
       kinds: Object.entries(NOTIFY_KINDS).map(([kind, meta]) => {

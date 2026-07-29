@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { OnboardingWizard, OT, ot, ONB_STEPS, BUSINESS_TYPES, MENU_SOURCES, onbProgress } from './onb.tsx';
+import { OnboardingWizard, OT, ot, ONB_STEPS, BUSINESS_TYPES, MENU_SOURCES, onbProgress } from '../OnboardingWizard.tsx';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,90)}`))};

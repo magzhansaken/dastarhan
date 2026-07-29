@@ -1,5 +1,5 @@
-import { pnl, cashFlow, abc, rfm, pickRule, minutesWorked, accrual } from './fin.ts';
-import type { FinTx } from './fin.ts';
+import { pnl, cashFlow, abc, rfm, pickRule, minutesWorked, accrual } from '../finance.logic.ts';
+import type { FinTx } from '../finance.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)} want ${JSON.stringify(w)}`))};

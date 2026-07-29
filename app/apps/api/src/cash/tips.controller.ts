@@ -215,7 +215,7 @@ export class TipsController {
       where: { id: { in: calc.map((c) => c.userId) } },
       select: { id: true, fullName: true },
     });
-    const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
+    const nameBy = new Map(users.map((u) => [u.id, u.fullName] as const));
 
     return {
       ok: true,
@@ -270,7 +270,7 @@ export class TipsController {
       where: { id: { in: [...byUser.keys()] } },
       select: { id: true, fullName: true },
     });
-    const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
+    const nameBy = new Map(users.map((u) => [u.id, u.fullName] as const));
 
     return {
       periodDays: Number(days),

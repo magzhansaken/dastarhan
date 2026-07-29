@@ -95,7 +95,7 @@ export class ModifiersController {
 
     const groups = ((product as any).modifierGroups ?? [])
       .map((pg: any) => pg.group).filter((g: any) => g && !g.isDeleted);
-    const selBy = new Map(dto.selected.map((s) => [s.groupId, s.optionIds]));
+    const selBy = new Map(dto.selected.map((s) => [s.groupId, s.optionIds] as const));
 
     const errors: string[] = [];
     let priceDelta = 0;

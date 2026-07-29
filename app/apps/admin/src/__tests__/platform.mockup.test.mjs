@@ -1,6 +1,6 @@
 import { VENDOR_NAV, FEATURE_MATRIX, planHasFeature, planFeatureCount,
   TICKET_CHANNEL, TICKET_PRIORITY, slaCountdown, TICKET_TOPICS, clientEventLabel,
-  ADMIN_ACTIONS, ACCOUNT_STATUS_RU, terminalStatusLabel, payMethodNote } from './platvm.ts';
+  ADMIN_ACTIONS, ACCOUNT_STATUS_RU, terminalStatusLabel, payMethodNote } from '../platform.viewmodels.ts';
 
 let pass=0, fail=0;
 const eq=(n,g,w)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g)}`))};

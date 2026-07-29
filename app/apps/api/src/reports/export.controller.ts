@@ -37,7 +37,7 @@ export class ExportController {
       where: { orderId: { in: orders.map((o) => o.id) } },
       select: { orderId: true, kind: true },
     });
-    const payBy = new Map(payments.map((p) => [p.orderId, p.kind]));
+    const payBy = new Map(payments.map((p) => [p.orderId, p.kind] as const));
 
     const rows = [
       'Дата;Номер;Позиция;Количество;Цена;Сумма;Оплата',
@@ -73,7 +73,7 @@ export class ExportController {
     });
 
     const cats = await this.prisma.finCategory.findMany({ where: { accountId: req.user.acc } });
-    const catBy = new Map(cats.map((c) => [c.id, c.name]));
+    const catBy = new Map(cats.map((c) => [c.id, c.name] as const));
 
     const rows = [
       'Дата;Статья;Приход;Расход;Комментарий',
@@ -106,7 +106,7 @@ export class ExportController {
       where: { id: { in: balances.map((b) => b.productId) } },
       select: { id: true, name: true, unit: true, sku: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
 
     const rows = [
       'Артикул;Товар;Единица;Остаток;Себестоимость;Сумма',
@@ -304,7 +304,7 @@ export class ExportController {
       where: { productId: { in: accProducts.map((p) => p.id) } },
       select: { productId: true, qty: true, avgCost: true },
     });
-    const nowBy = new Map(balances.map((b) => [b.productId, Number(b.qty)]));
+    const nowBy = new Map(balances.map((b) => [b.productId, Number(b.qty)] as const));
 
     const after = await this.prisma.stockMovement.findMany({
       where: { accountId: req.user.acc, at: { gt: to } },
@@ -328,8 +328,8 @@ export class ExportController {
       where: { id: { in: ids } },
       select: { id: true, name: true, unit: true, sku: true },
     });
-    const byId = new Map(products.map((p) => [p.id, p]));
-    const costBy = new Map(balances.map((b) => [b.productId, b.avgCost]));
+    const byId = new Map(products.map((p) => [p.id, p] as const));
+    const costBy = new Map(balances.map((b) => [b.productId, b.avgCost] as const));
 
     const lines = [
       'Артикул;Товар;Ед;Остаток на начало;Приход;Расход;Остаток на конец;Себестоимость;Сумма',

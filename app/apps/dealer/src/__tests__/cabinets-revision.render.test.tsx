@@ -1,8 +1,8 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { DealerTierBlock, DealerPayoutBlock, SubDealersBlock } from './dealscr.tsx';
-import { FeatureGate, DowngradeWarning } from './billscr.tsx';
-import type { DealerNode } from './deal.ts';
+import { DealerTierBlock, DealerPayoutBlock, SubDealersBlock } from '../DealerScreens.tsx';
+import { FeatureGate, DowngradeWarning } from '../../../billing/src/BillingScreens.tsx';
+import type { DealerNode } from '../../../../packages/shared/src/platform/dealer.logic.ts';
 
 let pass=0, fail=0;
 const eq=(n:string,g:any,w:any)=>{const ok=JSON.stringify(g)===JSON.stringify(w);ok?(pass++,console.log(`  ✓ ${n}`)):(fail++,console.log(`  ✗ ${n}: got ${JSON.stringify(g).slice(0,110)}`))};

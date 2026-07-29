@@ -76,7 +76,7 @@ export class AuditController {
       where: { id: { in: userIds as string[] } },
       select: { id: true, fullName: true },
     });
-    const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
+    const nameBy = new Map(users.map((u) => [u.id, u.fullName] as const));
 
     let rows = events.map((e) => {
       const p = e.payload as any;
@@ -147,7 +147,7 @@ export class AuditController {
       where: { id: { in: [...byUser.keys()] } },
       select: { id: true, fullName: true },
     });
-    const nameBy = new Map(users.map((u) => [u.id, u.fullName]));
+    const nameBy = new Map(users.map((u) => [u.id, u.fullName] as const));
 
     const rows: {
       userId: string; name: string; total: number;

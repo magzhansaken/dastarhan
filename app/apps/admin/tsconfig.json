@@ -1,5 +1,6 @@
 {
   "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "paths": { "@dastarhan/shared": ["../../packages/shared/src/index.ts"], "@dastarhan/shared/*": ["../../packages/shared/src/*"] } },
   "include": ["src"],
   "exclude": ["**/__tests__/**", "**/*.test.tsx", "**/*.test.ts"]
 }
